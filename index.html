@@ -694,6 +694,47 @@ async function checkRijksmonument(pandFeature) {
   }
 }
 
+function parseGekoppeldPerceel(str) {
+  const m = (str || '').match(/^([A-Za-z]{2,4}\d{2})-([A-Za-z]{1,2})-(\d+)$/);
+  if (!m) return null;
+  return { gemeentecode: m[1].toUpperCase(), sectie: m[2].toUpperCase(), perceelnummer: Number(m[3]) };
+}
+
+async function haalPerceelViaGekoppeldPerceel(doc) {
+  const lijst = doc.gekoppeld_perceel;
+  if (!lijst || !lijst.length) return [];
+
+  let referencePunt = null;
+  if (doc.centroide_ll) {
+    const [lon, lat] = doc.centroide_ll.replace('POINT(', '').replace(')', '').split(' ').map(Number);
+    referencePunt = { lat, lon };
+  }
+
+  const resultaten = [];
+  for (const ruw of lijst) {
+    const parsed = parseGekoppeldPerceel(ruw);
+    if (!parsed) continue;
+    let kandidaten = [];
+    try {
+      kandidaten = await haalPerceelBijAanduidingNationaal(parsed.sectie, parsed.perceelnummer);
+    } catch (e) { continue; }
+    if (!kandidaten.length) continue;
+
+    let gekozen = kandidaten[0];
+    if (kandidaten.length > 1 && referencePunt) {
+      let besteAfstand = Infinity;
+      kandidaten.forEach(k => {
+        const p = parseWKT(k.puntwkt);
+        if (!p) return;
+        const d = haversineMeters(referencePunt.lat, referencePunt.lon, p.latlng[0], p.latlng[1]);
+        if (d < besteAfstand) { besteAfstand = d; gekozen = k; }
+      });
+    }
+    resultaten.push({ perceelUri: gekozen.perceelUri, sectie: gekozen.sectie, perceelnummer: gekozen.perceelnummer });
+  }
+  return resultaten;
+}
+
 async function haalPerceelBijAdres(postcode, huisnummer) {
   const pcEsc = (postcode || '').replace(/"/g, '').replace(/\s/g, '');
   const q = PREFIXES_KKG + `
@@ -1033,7 +1074,11 @@ function extractRmnrUitMonument(monument) {
 async function verwerkPerceelVoorAdres(doc, rmnr, brkRelatiesHint, myGen) {
   document.getElementById('perceel-status').textContent = 'Perceel opzoeken…';
   try {
-    const percelen = await haalPerceelBijAdres(doc.postcode, doc.huisnummer);
+    let percelen = await haalPerceelViaGekoppeldPerceel(doc);
+    if (myGen !== requestGen) return;
+    if (!percelen.length) {
+      percelen = await haalPerceelBijAdres(doc.postcode, doc.huisnummer);
+    }
     if (myGen !== requestGen) return;
 
     if (!percelen.length) {
