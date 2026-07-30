@@ -1024,7 +1024,7 @@ async function zoekKadastraleAanduiding(tekst) {
 
 function extractRmnrUitMonument(monument) {
   if (!monument) return null;
-  const citation = monument.properties && monument.properties.ci_citation;
+  const citation = monument.properties && monument.properties.ciCitation;
   if (!citation) return null;
   const m = citation.match(/monumenten\/(\d+)/);
   return m ? m[1] : null;
@@ -1149,9 +1149,14 @@ function toonMonumentBadge(monument) {
 
   const props = monument.properties;
   const jaar = props.legalfoundationdate ? props.legalfoundationdate.slice(0, 4) : '';
-  document.getElementById('monument-info').textContent =
-    jaar ? `Beschermd sinds ${jaar}` : 'Beschermd rijksmonument';
-  document.getElementById('monument-link').href = props.ci_citation || 'https://monumentenregister.cultureelerfgoed.nl/';
+  const citation = props.ciCitation || '';
+  const rmnrMatch = citation.match(/monumenten\/(\d+)/);
+  const rmnr = rmnrMatch ? rmnrMatch[1] : null;
+
+  let infoTekst = jaar ? `Beschermd sinds ${jaar}` : 'Beschermd rijksmonument';
+  if (rmnr) infoTekst += ` · nr. ${rmnr}`;
+  document.getElementById('monument-info').textContent = infoTekst;
+  document.getElementById('monument-link').href = citation || 'https://monumentenregister.cultureelerfgoed.nl/';
   badge.classList.add('zichtbaar');
 }
 
