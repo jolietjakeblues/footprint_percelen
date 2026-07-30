@@ -39,3 +39,10 @@ Statisch bestand, geen dependencies om te installeren. Open `index.html` via een
 ## Licentie
 
 MIT, zie [LICENSE](LICENSE).
+
+---
+
+*"The future is unwritten."*  
+— Joe Strummer
+
+---
