@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pandoppervlakte</title>
+<title>Pandoppervlakte &amp; percelen</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -177,16 +177,165 @@
   #map { flex: 1; }
 
   .leaflet-popup-content { font-family: var(--sans); font-size: 13px; }
+
+  .sectie-kop {
+    margin-top: 22px;
+    padding-top: 4px;
+  }
+
+  #perceelcheck-badge {
+    display: none;
+    margin-top: 10px;
+    padding: 12px 14px;
+    border-radius: 4px;
+    align-items: flex-start;
+    gap: 10px;
+    border: 1.5px solid var(--line);
+  }
+  #perceelcheck-badge.zichtbaar { display: flex; }
+  #perceelcheck-badge .icoon {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+  }
+  #perceelcheck-badge .tekst { font-size: 12.5px; line-height: 1.45; }
+  #perceelcheck-badge .titel {
+    font-weight: 700;
+    font-size: 13px;
+    display: block;
+    margin-bottom: 2px;
+  }
+  #perceelcheck-badge .detail { color: var(--slate); }
+  #perceelcheck-badge.match { background: #f0f7ef; border-color: #3f7d3a; }
+  #perceelcheck-badge.match .icoon { background: #3f7d3a; }
+  #perceelcheck-badge.match .titel { color: #3f7d3a; }
+  #perceelcheck-badge.ambigu { background: #fff9ec; border-color: #b5871f; }
+  #perceelcheck-badge.ambigu .icoon { background: #b5871f; }
+  #perceelcheck-badge.ambigu .titel { color: #b5871f; }
+  #perceelcheck-badge.mismatch { background: #fdf0ee; border-color: #b5341f; }
+  #perceelcheck-badge.mismatch .icoon { background: #b5341f; }
+  #perceelcheck-badge.mismatch .titel { color: #b5341f; }
+  #perceelcheck-badge.onbekend { background: #f2f3f0; border-color: var(--slate); }
+  #perceelcheck-badge.onbekend .icoon { background: var(--slate); }
+  #perceelcheck-badge.onbekend .titel { color: var(--slate); }
+
+  #beperkingen-lijst {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+  }
+  #beperkingen-lijst li {
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+  #beperkingen-lijst li:last-child { border-bottom: none; }
+  #beperkingen-lijst .code {
+    font-family: var(--mono);
+    font-weight: 600;
+    color: var(--rust);
+    margin-right: 6px;
+  }
+  #beperkingen-lijst .datum {
+    display: block;
+    color: var(--slate);
+    font-family: var(--mono);
+    font-size: 11px;
+    margin-top: 2px;
+  }
+  #beperkingen-leeg {
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: var(--slate);
+  }
+
+  .sectie-status {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--slate);
+    margin-top: 8px;
+    min-height: 15px;
+  }
+
+  #kad-picker {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(28,35,33,0.45);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+  }
+  #kad-picker.zichtbaar { display: flex; }
+  #kad-picker-paneel {
+    background: var(--panel);
+    border-radius: 6px;
+    width: 460px;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  }
+  #kad-picker-header {
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  #kad-picker-header h2 {
+    font-size: 15px;
+    margin: 0 0 10px;
+  }
+  #kad-picker-filter {
+    width: 100%;
+    padding: 8px 10px;
+    font-family: var(--sans);
+    font-size: 13px;
+    border: 1.5px solid var(--ink);
+    border-radius: 3px;
+    outline: none;
+  }
+  #kad-picker-filter:focus { border-color: var(--rust); }
+  #kad-picker-lijst {
+    overflow-y: auto;
+    flex: 1;
+  }
+  .kad-kandidaat {
+    padding: 10px 20px;
+    font-size: 13px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+  }
+  .kad-kandidaat:hover { background: var(--rust-dim); }
+  .kad-kandidaat .plaats { font-weight: 500; }
+  .kad-kandidaat .aanduiding { font-family: var(--mono); color: var(--slate); font-size: 12px; }
+  #kad-picker-sluiten {
+    padding: 12px 20px;
+    text-align: right;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--slate);
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
 
 <div id="sidebar">
-  <p class="eyebrow">BAG · footprint</p>
-  <h1>Wat is de oppervlakte<br>van dit pand?</h1>
+  <p class="eyebrow">BAG · Kadaster · RCE</p>
+  <h1>Klopt het perceel<br>bij dit rijksmonument?</h1>
 
   <div class="search-wrap">
-    <input id="adres-input" type="text" placeholder="Straat en huisnummer, plaats — of rijksmonumentnummer" autocomplete="off">
+    <input id="adres-input" type="text" placeholder="Adres, rijksmonumentnummer, of kadastrale aanduiding (bv. F 3945)" autocomplete="off">
     <div id="suggestions"></div>
   </div>
 
@@ -227,10 +376,40 @@
       sleutelvrije data, dus die link opent EP-Online met postcode en huisnummer
       al zichtbaar om zelf in te vullen.
     </div>
+
+    <p class="eyebrow sectie-kop">Kadaster · perceel</p>
+    <div id="perceel-status" class="sectie-status"></div>
+    <div class="veld"><span class="label">Kadastrale aanduiding</span><span class="waarde" id="v-kad-aanduiding">–</span></div>
+    <div class="veld"><span class="label">Kadastrale grootte</span><span class="waarde" id="v-kad-grootte">–</span></div>
+    <div class="veld"><span class="label">Geregistreerd sinds</span><span class="waarde" id="v-kad-datum">–</span></div>
+
+    <div id="perceelcheck-badge">
+      <div class="icoon" id="perceelcheck-icoon">?</div>
+      <div class="tekst">
+        <span class="titel" id="perceelcheck-titel">–</span>
+        <span id="perceelcheck-detail" class="detail">–</span>
+      </div>
+    </div>
+
+    <p class="eyebrow sectie-kop">Publiekrechtelijke beperkingen</p>
+    <div id="beperkingen-status" class="sectie-status"></div>
+    <ul id="beperkingen-lijst"></ul>
+    <div id="beperkingen-leeg" style="display:none;">Geen beperkingen geregistreerd op dit perceel.</div>
   </div>
 </div>
 
 <div id="map"></div>
+
+<div id="kad-picker">
+  <div id="kad-picker-paneel">
+    <div id="kad-picker-header">
+      <h2 id="kad-picker-titel">Meerdere percelen gevonden</h2>
+      <input id="kad-picker-filter" type="text" placeholder="Filter op gemeente…" autocomplete="off">
+    </div>
+    <div id="kad-picker-lijst"></div>
+    <div id="kad-picker-sluiten">Sluiten</div>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js"></script>
@@ -249,6 +428,84 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 let pandLayer = null;
 let marker = null;
+let perceelLayer = null;
+let requestGen = 0;
+let kadPickerOnKies = null;
+
+const KKG_SPARQL = 'https://api.labs.kadaster.nl/datasets/kadaster/kkg/services/kkg/sparql';
+const RCE_SPARQL = 'https://api.linkeddata.cultureelerfgoed.nl/datasets/rce/cho/services/cho/sparql';
+const PREFIXES_KKG = `PREFIX imxgeo: <http://modellen.geostandaarden.nl/def/imx-geo#>
+PREFIX ext: <https://modellen.kkg.kadaster.nl/def/imxgeo-ext#>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX nen3610: <http://modellen.geostandaarden.nl/def/nen3610#>
+`;
+const PREFIXES_RCE = `PREFIX ceo: <https://linkeddata.cultureelerfgoed.nl/def/ceo#>
+`;
+
+async function sparqlSelect(endpoint, query) {
+  const resp = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/sparql-results+json'
+    },
+    body: 'query=' + encodeURIComponent(query)
+  });
+  if (!resp.ok) throw new Error('SPARQL-fout (' + resp.status + ')');
+  const data = await resp.json();
+  return (data.results && data.results.bindings) || [];
+}
+
+function lit(row, key) {
+  return row[key] ? row[key].value : null;
+}
+
+function parseWKT(wkt) {
+  if (!wkt) return null;
+  function coordListNaarLatLng(str) {
+    return str.trim().split(',').map(paar => {
+      const [lon, lat] = paar.trim().split(/\s+/).map(Number);
+      return [lat, lon];
+    });
+  }
+  if (wkt.startsWith('POINT')) {
+    const binnen = wkt.match(/POINT\(([^)]+)\)/)[1];
+    const [lon, lat] = binnen.trim().split(/\s+/).map(Number);
+    return { type: 'Point', latlng: [lat, lon] };
+  }
+  if (wkt.startsWith('MULTIPOLYGON')) {
+    const binnen = wkt.slice(wkt.indexOf('(((') + 2, wkt.lastIndexOf(')))') + 1);
+    const polys = binnen.split(')),((').map(polyStr =>
+      polyStr.replace(/^\(+/, '').replace(/\)+$/, '').split('),(').map(coordListNaarLatLng)
+    );
+    return { type: 'MultiPolygon', polys };
+  }
+  if (wkt.startsWith('POLYGON')) {
+    const binnen = wkt.slice(wkt.indexOf('((') + 2, wkt.lastIndexOf('))'));
+    const rings = binnen.split('),(').map(coordListNaarLatLng);
+    return { type: 'Polygon', rings };
+  }
+  return null;
+}
+
+function haversineMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function parseKadastraleAanduiding(tekst) {
+  const t = (tekst || '').trim();
+  let m = t.match(/^([A-Za-z]{2,5}\d{2})[\s-]+([A-Za-z]{1,2})[\s-]+(\d{1,6})$/);
+  if (m) return { gemeenteHint: null, gemeentecode: m[1].toUpperCase(), sectie: m[2].toUpperCase(), perceelnummer: Number(m[3]) };
+  m = t.match(/^([A-Za-z]{1,2})[\s-]+(\d{1,6})$/);
+  if (m) return { gemeenteHint: null, sectie: m[1].toUpperCase(), perceelnummer: Number(m[2]) };
+  m = t.match(/^(.{3,}?)\s+([A-Za-z]{1,2})[\s-]+(\d{1,6})$/);
+  if (m) return { gemeenteHint: m[1].trim(), sectie: m[2].toUpperCase(), perceelnummer: Number(m[3]) };
+  return null;
+}
 
 const input = document.getElementById('adres-input');
 const suggestionsBox = document.getElementById('suggestions');
@@ -268,6 +525,21 @@ input.addEventListener('input', () => {
     div.onclick = () => {
       suggestionsBox.style.display = 'none';
       zoekRijksmonumentNummer(q);
+    };
+    suggestionsBox.appendChild(div);
+    suggestionsBox.style.display = 'block';
+    return;
+  }
+
+  const kadParsed = parseKadastraleAanduiding(q);
+  if (kadParsed) {
+    suggestionsBox.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'suggestion';
+    div.textContent = `Kadastrale aanduiding "${kadParsed.sectie} ${kadParsed.perceelnummer}" opzoeken`;
+    div.onclick = () => {
+      suggestionsBox.style.display = 'none';
+      zoekKadastraleAanduiding(q);
     };
     suggestionsBox.appendChild(div);
     suggestionsBox.style.display = 'block';
@@ -309,51 +581,66 @@ async function zoekAdres(q) {
   }
 }
 
-function parseTurtleTriples(text) {
-  const triples = {};
-  text.split('\n').forEach(line => {
-    line = line.trim();
-    const m = line.match(/^<[^>]+>\s+<([^>]+)>\s+(.+?)\s*\.$/);
-    if (!m) return;
-    const pred = m[1].split('#').pop();
-    let obj = m[2].trim();
-    if (obj.startsWith('<') && obj.endsWith('>')) {
-      obj = obj.slice(1, -1);
-    } else {
-      const lit = obj.match(/^"([^"]*)"/);
-      if (lit) obj = lit[1];
-    }
-    if (!triples[pred]) triples[pred] = [];
-    triples[pred].push(obj);
-  });
-  return triples;
+async function bestaatRijksmonument(nummer) {
+  const q = PREFIXES_RCE + `SELECT ?mon WHERE { ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${nummer}" . } LIMIT 1`;
+  const rows = await sparqlSelect(RCE_SPARQL, q);
+  return rows.length > 0;
+}
+
+async function haalRceBagRelaties(nummer) {
+  const q = PREFIXES_RCE + `
+SELECT DISTINCT ?straat ?huisnr WHERE {
+  ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${nummer}" ; ceo:heeftBasisregistratieRelatie/ceo:heeftBAGRelatie ?bag .
+  ?bag ceo:openbareRuimte ?straat ; ceo:huisnummer ?huisnr .
+}`;
+  const rows = await sparqlSelect(RCE_SPARQL, q);
+  return rows.map(r => ({ straat: lit(r, 'straat'), huisnummer: lit(r, 'huisnr') }));
+}
+
+async function haalRceBrkRelaties(nummer) {
+  const q = PREFIXES_RCE + `
+SELECT DISTINCT ?sectie ?perceelnr ?gemeentenaam WHERE {
+  ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${nummer}" ; ceo:heeftBasisregistratieRelatie/ceo:heeftBRKRelatie ?brk .
+  ?brk ceo:sectie ?sectie ; ceo:perceelnummer ?perceelnr ; ceo:gemeentenaam ?gemeentenaam .
+}`;
+  const rows = await sparqlSelect(RCE_SPARQL, q);
+  return rows.map(r => ({ sectie: lit(r, 'sectie'), perceelnummer: lit(r, 'perceelnr'), gemeentenaam: lit(r, 'gemeentenaam') }));
 }
 
 async function zoekRijksmonumentNummer(nummer) {
+  document.getElementById('kad-picker').classList.remove('zichtbaar');
   statusEl.textContent = `Rijksmonument ${nummer} opzoeken…`;
   resultaatEl.style.display = 'none';
+  const myGen = ++requestGen;
   try {
-    const url = `https://api.linkeddata.cultureelerfgoed.nl/queries/rce/rest-api-rijksmonumenten/run?rijksmonumentnummer=${encodeURIComponent(nummer)}`;
-    const resp = await fetch(url);
-    const text = await resp.text();
-    if (!text.trim()) {
+    const bestaat = await bestaatRijksmonument(nummer);
+    if (myGen !== requestGen) return;
+    if (!bestaat) {
       statusEl.textContent = `Geen rijksmonument gevonden met nummer ${nummer}.`;
       return;
     }
-    const triples = parseTurtleTriples(text);
-    const straat = triples.openbareRuimte?.[0];
-    const huisnummerRuw = triples.huisnummer?.[0] || '';
-    const huisnummer = (huisnummerRuw.match(/\d+/) || [''])[0];
-    const postcode = triples.postcode?.[0] || '';
 
-    if (!straat) {
-      const link = triples.rijksmonumentnummer?.[0] || `https://monumentenregister.cultureelerfgoed.nl/monumenten/${nummer}`;
-      statusEl.innerHTML = `Rijksmonument ${nummer} gevonden, maar zonder straatadres (mogelijk archeologisch of een ligplaats). ` +
-        `<a href="${link}" target="_blank" rel="noopener" style="color:var(--rust)">Bekijk in het register ↗</a>`;
+    const [bagRelaties, brkRelaties] = await Promise.all([
+      haalRceBagRelaties(nummer),
+      haalRceBrkRelaties(nummer)
+    ]);
+    if (myGen !== requestGen) return;
+
+    const registerLink = `https://monumentenregister.cultureelerfgoed.nl/monumenten/${nummer}`;
+
+    if (!bagRelaties.length) {
+      if (!brkRelaties.length) {
+        statusEl.innerHTML = `Rijksmonument ${nummer} gevonden, maar zonder straatadres én zonder kadastrale koppeling (mogelijk archeologisch of een ligplaats). ` +
+          `<a href="${registerLink}" target="_blank" rel="noopener" style="color:var(--rust)">Bekijk in het register ↗</a>`;
+        return;
+      }
+      statusEl.textContent = '';
+      await toonPerceelZonderAdres(nummer, brkRelaties, registerLink, myGen);
       return;
     }
 
-    const zoekterm = `${straat} ${huisnummer}${postcode ? ', ' + postcode : ''}`.trim();
+    const eerste = bagRelaties[0];
+    const zoekterm = `${eerste.straat} ${eerste.huisnummer}`.trim();
     const adresUrl = `https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(zoekterm)}&fq=type:adres&rows=1`;
     const adresResp = await fetch(adresUrl);
     const adresData = await adresResp.json();
@@ -362,9 +649,11 @@ async function zoekRijksmonumentNummer(nummer) {
       statusEl.textContent = `Rijksmonument ${nummer} gevonden (${zoekterm}), maar adres kon niet worden herleid naar coördinaten.`;
       return;
     }
+    if (myGen !== requestGen) return;
     input.value = adresDoc.weergavenaam;
-    await verwerkAdres(adresDoc);
+    await verwerkAdres(adresDoc, { rmnr: nummer, brkRelaties });
   } catch (err) {
+    if (myGen !== requestGen) return;
     statusEl.textContent = 'Fout bij opzoeken rijksmonument: ' + err.message;
   }
 }
@@ -405,13 +694,391 @@ async function checkRijksmonument(pandFeature) {
   }
 }
 
-async function verwerkAdres(doc) {
+async function haalPerceelBijAdres(postcode, huisnummer) {
+  const pcEsc = (postcode || '').replace(/"/g, '').replace(/\s/g, '');
+  const q = PREFIXES_KKG + `
+SELECT DISTINCT ?perceel ?sectie ?perceelnummer WHERE {
+  ?adres a imxgeo:Adres ; imxgeo:postcode "${pcEsc}" ; imxgeo:huisnummer ${Number(huisnummer)} ; imxgeo:isAdresVanGebouw ?geb .
+  ?geb imxgeo:bevindtZichOpPerceel ?perceel .
+  ?perceel ext:sectie ?sectie ; ext:perceelnummer ?perceelnummer .
+}`;
+  const rows = await sparqlSelect(KKG_SPARQL, q);
+  return rows.map(r => ({ perceelUri: lit(r, 'perceel'), sectie: lit(r, 'sectie'), perceelnummer: Number(lit(r, 'perceelnummer')) }));
+}
+
+async function haalPerceelDetails(perceelUri) {
+  const q = PREFIXES_KKG + `
+SELECT ?sectie ?perceelnummer ?plaatsnaam ?grootte ?wkt ?puntwkt ?begin WHERE {
+  <${perceelUri}> ext:sectie ?sectie ; ext:perceelnummer ?perceelnummer ; geo:hasMetricArea ?grootte ;
+    imxgeo:ligtInRegistratieveRuimte ?plaats .
+  ?plaats a imxgeo:Gemeentegebied ; imxgeo:naam ?plaatsnaam .
+  OPTIONAL { <${perceelUri}> geo:hasGeometry/geo:asWKT ?wkt }
+  OPTIONAL { <${perceelUri}> ext:plaatscoordinaten/geo:asWKT ?puntwkt }
+  OPTIONAL { <${perceelUri}> imxgeo:registratiegegevens/nen3610:beginGeldigheid ?begin }
+} LIMIT 1`;
+  const rows = await sparqlSelect(KKG_SPARQL, q);
+  if (!rows.length) return null;
+  const r = rows[0];
+  return {
+    perceelUri,
+    sectie: lit(r, 'sectie'),
+    perceelnummer: Number(lit(r, 'perceelnummer')),
+    plaatsnaam: lit(r, 'plaatsnaam'),
+    grootte: lit(r, 'grootte'),
+    wkt: lit(r, 'wkt'),
+    puntwkt: lit(r, 'puntwkt'),
+    begin: lit(r, 'begin')
+  };
+}
+
+async function haalPerceelBijAanduidingNationaal(sectie, perceelnummer) {
+  const sectieEsc = (sectie || '').replace(/"/g, '').trim().toUpperCase();
+  const q = PREFIXES_KKG + `
+SELECT DISTINCT ?perceel ?plaatsnaam ?puntwkt WHERE {
+  ?perceel a imxgeo:Perceel ; ext:sectie "${sectieEsc}" ; ext:perceelnummer ${Number(perceelnummer)} ;
+    imxgeo:ligtInRegistratieveRuimte ?plaats .
+  ?plaats a imxgeo:Gemeentegebied ; imxgeo:naam ?plaatsnaam .
+  OPTIONAL { ?perceel ext:plaatscoordinaten/geo:asWKT ?puntwkt }
+} LIMIT 200`;
+  const rows = await sparqlSelect(KKG_SPARQL, q);
+  return rows.map(r => ({
+    perceelUri: lit(r, 'perceel'),
+    plaatsnaam: lit(r, 'plaatsnaam'),
+    puntwkt: lit(r, 'puntwkt'),
+    sectie: sectieEsc,
+    perceelnummer: Number(perceelnummer)
+  }));
+}
+
+async function haalBeperkingen(perceelUri) {
+  const q = PREFIXES_KKG + `
+SELECT DISTINCT ?code ?label WHERE {
+  ?b imxgeo:isBeperkingOpPerceel <${perceelUri}> ; imxgeo:grondslagcode ?code ; imxgeo:grondslag ?label .
+}`;
+  const rows = await sparqlSelect(KKG_SPARQL, q);
+  return rows.map(r => ({ code: lit(r, 'code'), label: lit(r, 'label') }));
+}
+
+async function vergelijkPerceelMetRCE(brkRelaties, referencePunt, bekendePercelen) {
+  bekendePercelen = bekendePercelen || [];
+  if (!brkRelaties || !brkRelaties.length) {
+    return { status: 'GEEN_BRK_RELATIE', details: [] };
+  }
+  const details = [];
+  for (const brk of brkRelaties) {
+    const sectie = (brk.sectie || '').trim().toUpperCase();
+    const perceelnummer = Number(brk.perceelnummer);
+
+    const directeMatch = bekendePercelen.find(p =>
+      (p.sectie || '').trim().toUpperCase() === sectie && p.perceelnummer === perceelnummer);
+    if (directeMatch) {
+      details.push({ brk, status: 'MATCH', afstandM: 0, gekozenPerceelUri: directeMatch.perceelUri, kandidaten: [directeMatch] });
+      continue;
+    }
+
+    let kandidaten = [];
+    try {
+      kandidaten = await haalPerceelBijAanduidingNationaal(sectie, perceelnummer);
+    } catch (e) { kandidaten = []; }
+
+    if (!kandidaten.length) {
+      details.push({ brk, status: 'UNRESOLVABLE', kandidaten: [] });
+      continue;
+    }
+
+    if (!referencePunt) {
+      if (kandidaten.length === 1) {
+        details.push({
+          brk, status: 'MATCH', afstandM: null, gekozenPerceelUri: kandidaten[0].perceelUri, kandidaten,
+          opmerking: 'geen adrespunt beschikbaar voor afstandscontrole'
+        });
+      } else {
+        details.push({ brk, status: 'AMBIGUOUS', kandidaten, opmerking: `${kandidaten.length} kandidaten landelijk gevonden, kies handmatig` });
+      }
+      continue;
+    }
+
+    let beste = null, besteAfstand = Infinity;
+    kandidaten.forEach(k => {
+      const p = parseWKT(k.puntwkt);
+      if (!p) return;
+      const d = haversineMeters(referencePunt.lat, referencePunt.lon, p.latlng[0], p.latlng[1]);
+      if (d < besteAfstand) { besteAfstand = d; beste = k; }
+    });
+    if (!beste) {
+      details.push({ brk, status: 'UNRESOLVABLE', kandidaten });
+      continue;
+    }
+    const status = besteAfstand < 50 ? 'MATCH' : (besteAfstand < 1000 ? 'AMBIGUOUS' : 'MISMATCH');
+    details.push({ brk, status, afstandM: besteAfstand, gekozenPerceelUri: beste.perceelUri, kandidaten });
+  }
+
+  const rang = { MISMATCH: 4, AMBIGUOUS: 3, UNRESOLVABLE: 2, MATCH: 1 };
+  const overall = details.reduce((acc, d) => (rang[d.status] > rang[acc] ? d.status : acc), 'MATCH');
+  const aantalMatch = details.filter(d => d.status === 'MATCH').length;
+  return { status: overall, details, samenvatting: `${aantalMatch} van ${details.length} kadastrale aanduiding(en) komen overeen` };
+}
+
+function toonPerceelcheck(resultaat) {
+  const badge = document.getElementById('perceelcheck-badge');
+  badge.classList.remove('match', 'ambigu', 'mismatch', 'onbekend', 'zichtbaar');
+  const icoon = document.getElementById('perceelcheck-icoon');
+  const titel = document.getElementById('perceelcheck-titel');
+  const detail = document.getElementById('perceelcheck-detail');
+
+  if (!resultaat || resultaat.status === 'GEEN_BRK_RELATIE') {
+    badge.classList.add('onbekend', 'zichtbaar');
+    icoon.textContent = '–';
+    titel.textContent = 'Geen kadastrale koppeling bij RCE';
+    detail.textContent = 'Voor dit rijksmonument is bij RCE geen kadastrale aanduiding (BRK-relatie) geregistreerd.';
+    return;
+  }
+
+  const teksten = {
+    MATCH: ['✓', 'Kadastrale aanduiding komt overeen'],
+    AMBIGUOUS: ['?', 'Mogelijk verouderde aanduiding'],
+    MISMATCH: ['!', 'Aanduiding bij RCE komt niet overeen'],
+    UNRESOLVABLE: ['×', 'Aanduiding niet gevonden in Kadaster']
+  };
+  const klasse = { MATCH: 'match', AMBIGUOUS: 'ambigu', MISMATCH: 'mismatch', UNRESOLVABLE: 'onbekend' }[resultaat.status];
+  badge.classList.add(klasse, 'zichtbaar');
+  icoon.textContent = teksten[resultaat.status][0];
+  titel.textContent = teksten[resultaat.status][1];
+
+  const eersteDetail = resultaat.details[0];
+  let detailTekst = resultaat.samenvatting;
+  if (eersteDetail && eersteDetail.afstandM != null) detailTekst += ` (Δ ${eersteDetail.afstandM.toFixed(0)} m)`;
+  if (eersteDetail && eersteDetail.opmerking) detailTekst += ' — ' + eersteDetail.opmerking;
+  const rceLijst = resultaat.details.map(d => `${d.brk.sectie} ${d.brk.perceelnummer} (${d.brk.gemeentenaam})`).join(', ');
+  detail.innerHTML = `${detailTekst}<br><span style="font-family:var(--mono);font-size:11px;">RCE: ${rceLijst}</span>`;
+}
+
+function toonPerceel(wkt, fitMap) {
+  const geo = parseWKT(wkt);
+  if (!geo || (geo.type !== 'Polygon' && geo.type !== 'MultiPolygon')) return;
+  if (perceelLayer) { map.removeLayer(perceelLayer); perceelLayer = null; }
+  const shape = geo.type === 'Polygon' ? geo.rings : geo.polys;
+  perceelLayer = L.polygon(shape, { color: '#4a5a58', weight: 2, dashArray: '6,4', fill: false }).addTo(map);
+
+  if (fitMap && !pandLayer) {
+    map.fitBounds(perceelLayer.getBounds(), { padding: [60, 60], maxZoom: 19 });
+  } else if (pandLayer) {
+    const groep = L.featureGroup([pandLayer, perceelLayer]);
+    map.fitBounds(groep.getBounds(), { padding: [60, 60], maxZoom: 19 });
+  }
+}
+
+function toonBeperkingen(lijst) {
+  const ul = document.getElementById('beperkingen-lijst');
+  const leeg = document.getElementById('beperkingen-leeg');
+  ul.innerHTML = '';
+  if (!lijst || !lijst.length) {
+    leeg.style.display = 'block';
+    return;
+  }
+  leeg.style.display = 'none';
+  lijst.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="code">${b.code || '–'}</span>${b.label || 'Onbekende beperking'}`;
+    ul.appendChild(li);
+  });
+}
+
+function verbergPerceelSectie(bericht) {
+  document.getElementById('perceel-status').textContent = bericht || '';
+  document.getElementById('v-kad-aanduiding').textContent = '–';
+  document.getElementById('v-kad-grootte').textContent = '–';
+  document.getElementById('v-kad-datum').textContent = '–';
+  document.getElementById('beperkingen-status').textContent = '';
+  document.getElementById('beperkingen-lijst').innerHTML = '';
+  document.getElementById('beperkingen-leeg').style.display = 'none';
+  if (perceelLayer) { map.removeLayer(perceelLayer); perceelLayer = null; }
+}
+
+async function toonPerceelResultaat(perceelUri, opts) {
+  opts = opts || {};
+  const gen = opts.gen;
+  const nogGeldig = () => gen == null || gen === requestGen;
+
+  document.getElementById('perceel-status').textContent = 'Perceelgegevens laden…';
+  const details = await haalPerceelDetails(perceelUri);
+  if (!nogGeldig()) return;
+  if (!details) {
+    verbergPerceelSectie('Perceelgegevens konden niet worden geladen.');
+    return;
+  }
+  document.getElementById('perceel-status').textContent = '';
+  document.getElementById('v-kad-aanduiding').textContent = `${details.plaatsnaam} · ${details.sectie} ${details.perceelnummer}`;
+  document.getElementById('v-kad-grootte').textContent = details.grootte ? `${Math.round(Number(details.grootte))} m²` : '–';
+  document.getElementById('v-kad-datum').textContent = details.begin || '–';
+
+  if (details.wkt) toonPerceel(details.wkt, opts.fitMap !== false);
+
+  document.getElementById('beperkingen-status').textContent = 'Beperkingen laden…';
+  try {
+    const beperkingen = await haalBeperkingen(perceelUri);
+    if (!nogGeldig()) return;
+    document.getElementById('beperkingen-status').textContent = '';
+    toonBeperkingen(beperkingen);
+  } catch (e) {
+    if (!nogGeldig()) return;
+    document.getElementById('beperkingen-status').textContent = 'Kon beperkingen niet ophalen: ' + e.message;
+  }
+}
+
+async function toonPerceelZonderAdres(nummer, brkRelaties, registerLink, gen) {
+  resultaatEl.style.display = 'block';
+  document.getElementById('stat-footprint').innerHTML = '–<span>m²</span>';
+  document.getElementById('monument-badge').classList.remove('zichtbaar');
+  document.getElementById('v-adres').innerHTML = `Geen BAG-adres — <a href="${registerLink}" target="_blank" rel="noopener" style="color:var(--rust)">register ↗</a>`;
+  ['v-id', 'v-bouwjaar', 'v-gebruiksdoel', 'v-status', 'v-vbo', 'v-nen'].forEach(id => document.getElementById(id).textContent = '–');
+  document.getElementById('v-energielabel').textContent = 'n.v.t.';
+  if (pandLayer) { map.removeLayer(pandLayer); pandLayer = null; }
+  if (marker) { map.removeLayer(marker); marker = null; }
+
+  const resultaat = await vergelijkPerceelMetRCE(brkRelaties, null, []);
+  toonPerceelcheck(resultaat);
+
+  const eersteMetKandidaat = resultaat.details.find(d => d.gekozenPerceelUri);
+  if (eersteMetKandidaat) {
+    await toonPerceelResultaat(eersteMetKandidaat.gekozenPerceelUri, { fitMap: true, gen });
+  } else {
+    verbergPerceelSectie('Geen eenduidig perceel gevonden voor de kadastrale aanduiding(en) bij dit monument.');
+  }
+}
+
+function toonKadastralePicker(kandidaten, gemeenteHint, onKies) {
+  kadPickerOnKies = onKies;
+  const overlay = document.getElementById('kad-picker');
+  const titel = document.getElementById('kad-picker-titel');
+  const lijst = document.getElementById('kad-picker-lijst');
+  const filterInput = document.getElementById('kad-picker-filter');
+  titel.textContent = `${kandidaten.length} percelen gevonden voor ${kandidaten[0].sectie} ${kandidaten[0].perceelnummer} — kies er één`;
+  filterInput.value = gemeenteHint || '';
+
+  function render(filterTekst) {
+    lijst.innerHTML = '';
+    const f = (filterTekst || '').toLowerCase();
+    kandidaten
+      .filter(k => !f || k.plaatsnaam.toLowerCase().includes(f))
+      .forEach(k => {
+        const div = document.createElement('div');
+        div.className = 'kad-kandidaat';
+        div.innerHTML = `<span class="plaats">${k.plaatsnaam}</span><span class="aanduiding">${k.sectie} ${k.perceelnummer}</span>`;
+        div.onclick = () => {
+          overlay.classList.remove('zichtbaar');
+          if (kadPickerOnKies) kadPickerOnKies(k);
+        };
+        lijst.appendChild(div);
+      });
+  }
+  render(filterInput.value);
+  filterInput.oninput = () => render(filterInput.value);
+  overlay.classList.add('zichtbaar');
+}
+
+async function toonKadastraalResultaatDirect(kandidaat, gen) {
+  if (gen != null && gen !== requestGen) return;
+  resultaatEl.style.display = 'block';
+  document.getElementById('stat-footprint').innerHTML = '–<span>m²</span>';
+  document.getElementById('monument-badge').classList.remove('zichtbaar');
+  document.getElementById('perceelcheck-badge').classList.remove('zichtbaar');
+  document.getElementById('v-adres').textContent = `${kandidaat.plaatsnaam} (via kadastrale aanduiding)`;
+  ['v-id', 'v-bouwjaar', 'v-gebruiksdoel', 'v-status', 'v-vbo', 'v-nen'].forEach(id => document.getElementById(id).textContent = '–');
+  document.getElementById('v-energielabel').textContent = 'n.v.t.';
+  if (pandLayer) { map.removeLayer(pandLayer); pandLayer = null; }
+  if (marker) { map.removeLayer(marker); marker = null; }
+  await toonPerceelResultaat(kandidaat.perceelUri, { fitMap: true, gen });
+}
+
+async function zoekKadastraleAanduiding(tekst) {
+  document.getElementById('kad-picker').classList.remove('zichtbaar');
+  const parsed = parseKadastraleAanduiding(tekst);
+  if (!parsed) {
+    statusEl.textContent = 'Kon de kadastrale aanduiding niet herkennen.';
+    return;
+  }
+  statusEl.textContent = `Perceel/percelen zoeken voor ${parsed.sectie} ${parsed.perceelnummer}…`;
+  resultaatEl.style.display = 'none';
+  const myGen = ++requestGen;
+  try {
+    const kandidaten = await haalPerceelBijAanduidingNationaal(parsed.sectie, parsed.perceelnummer);
+    if (myGen !== requestGen) return;
+    if (!kandidaten.length) {
+      statusEl.textContent = `Geen perceel gevonden voor ${parsed.sectie} ${parsed.perceelnummer}.`;
+      return;
+    }
+    statusEl.textContent = '';
+    if (kandidaten.length === 1) {
+      await toonKadastraalResultaatDirect(kandidaten[0], myGen);
+      return;
+    }
+    toonKadastralePicker(kandidaten, parsed.gemeenteHint, async (kandidaat) => {
+      await toonKadastraalResultaatDirect(kandidaat, myGen);
+    });
+  } catch (err) {
+    if (myGen !== requestGen) return;
+    statusEl.textContent = 'Fout bij zoeken kadastrale aanduiding: ' + err.message;
+  }
+}
+
+function extractRmnrUitMonument(monument) {
+  if (!monument) return null;
+  const citation = monument.properties && monument.properties.ci_citation;
+  if (!citation) return null;
+  const m = citation.match(/monumenten\/(\d+)/);
+  return m ? m[1] : null;
+}
+
+async function verwerkPerceelVoorAdres(doc, rmnr, brkRelatiesHint, myGen) {
+  document.getElementById('perceel-status').textContent = 'Perceel opzoeken…';
+  try {
+    const percelen = await haalPerceelBijAdres(doc.postcode, doc.huisnummer);
+    if (myGen !== requestGen) return;
+
+    if (!percelen.length) {
+      verbergPerceelSectie('Geen perceel gevonden bij dit adres in de Kadaster Kennisgraaf.');
+    } else {
+      await toonPerceelResultaat(percelen[0].perceelUri, { fitMap: false, gen: myGen });
+      if (myGen !== requestGen) return;
+      if (percelen.length > 1) {
+        document.getElementById('perceel-status').textContent =
+          `Let op: dit pand raakt ${percelen.length} percelen — hierboven wordt alleen het eerste getoond.`;
+      }
+    }
+
+    if (rmnr) {
+      const brkRelaties = brkRelatiesHint || await haalRceBrkRelaties(rmnr);
+      if (myGen !== requestGen) return;
+      let referencePunt = null;
+      if (doc.centroide_ll) {
+        const [lon, lat] = doc.centroide_ll.replace('POINT(', '').replace(')', '').split(' ').map(Number);
+        referencePunt = { lat, lon };
+      }
+      const resultaat = await vergelijkPerceelMetRCE(brkRelaties, referencePunt, percelen);
+      if (myGen !== requestGen) return;
+      toonPerceelcheck(resultaat);
+    } else {
+      document.getElementById('perceelcheck-badge').classList.remove('zichtbaar');
+    }
+  } catch (err) {
+    if (myGen !== requestGen) return;
+    document.getElementById('perceel-status').textContent = 'Fout bij perceel/beperkingen: ' + err.message;
+  }
+}
+
+async function verwerkAdres(doc, context) {
+  context = context || {};
+  document.getElementById('kad-picker').classList.remove('zichtbaar');
   statusEl.textContent = 'Pandgeometrie ophalen…';
   resultaatEl.style.display = 'none';
   document.getElementById('monument-badge').classList.remove('zichtbaar');
+  document.getElementById('perceelcheck-badge').classList.remove('zichtbaar');
+  verbergPerceelSectie('');
 
   const coords = doc.centroide_rd.replace('POINT(', '').replace(')', '').split(' ').map(Number);
   const [x, y] = coords;
+  const myGen = ++requestGen;
 
   try {
     const marge = 30;
@@ -420,6 +1087,7 @@ async function verwerkAdres(doc) {
       `&typeName=bag:pand&outputFormat=application/json&srsName=EPSG:28992&bbox=${bbox}`;
     const resp = await fetch(wfsUrl);
     const data = await resp.json();
+    if (myGen !== requestGen) return;
 
     if (!data.features || !data.features.length) {
       statusEl.textContent = 'Geen pand gevonden op deze locatie.';
@@ -439,8 +1107,13 @@ async function verwerkAdres(doc) {
     statusEl.textContent = '';
 
     const monument = await checkRijksmonument(pand);
+    if (myGen !== requestGen) return;
     toonMonumentBadge(monument);
+
+    const rmnr = context.rmnr || extractRmnrUitMonument(monument);
+    verwerkPerceelVoorAdres(doc, rmnr, context.brkRelaties, myGen);
   } catch (err) {
+    if (myGen !== requestGen) return;
     statusEl.textContent = 'Fout bij ophalen pand: ' + err.message;
   }
 }
@@ -535,6 +1208,10 @@ function toonPand(pand, footprint, adresDoc, x, y) {
 
   map.fitBounds(pandLayer.getBounds(), { padding: [60, 60], maxZoom: 19 });
 }
+
+document.getElementById('kad-picker-sluiten').onclick = () => {
+  document.getElementById('kad-picker').classList.remove('zichtbaar');
+};
 </script>
 </body>
 </html>
