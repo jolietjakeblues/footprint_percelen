@@ -1104,6 +1104,15 @@ async function toonPerceelZonderAdres(nummer, brkRelaties, registerLink, gen) {
   const eersteMetKandidaat = resultaat.details.find(d => d.gekozenPerceelUri);
   if (eersteMetKandidaat) {
     await toonPerceelResultaat(eersteMetKandidaat.gekozenPerceelUri, { fitMap: true, gen });
+    return;
+  }
+
+  const ambigu = resultaat.details.find(d => d.kandidaten && d.kandidaten.length > 1);
+  if (ambigu) {
+    verbergPerceelSectie(`${ambigu.kandidaten.length} kandidaten gevonden voor ${ambigu.brk.sectie} ${ambigu.brk.perceelnummer} — kies er één hieronder (RCE noemt gemeente "${ambigu.brk.gemeentenaam}", mogelijk een historische kadastrale naam die niet meer als zodanig bestaat).`);
+    toonKadastralePicker(ambigu.kandidaten, null, async (kandidaat) => {
+      await toonPerceelResultaat(kandidaat.perceelUri, { fitMap: true, gen });
+    });
   } else {
     verbergPerceelSectie('Geen eenduidig perceel gevonden voor de kadastrale aanduiding(en) bij dit monument.');
   }
