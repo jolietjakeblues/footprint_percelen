@@ -174,6 +174,13 @@
     padding-left: 12px;
   }
 
+  .privacy-note {
+    margin: 14px 0 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--slate);
+  }
+
   #map { flex: 1; }
 
   .leaflet-popup-content { font-family: var(--sans); font-size: 13px; }
@@ -341,6 +348,10 @@
 
   <div id="status"></div>
 
+  <p class="privacy-note">
+    Je zoekopdracht (adres, rijksmonumentnummer of kadastrale aanduiding) en de bijbehorende coördinaten gaan rechtstreeks vanuit je browser naar PDOK, de Kadaster Kennisgraaf en RCE — deze pagina zelf slaat niets op. De uitkomst is een technische afleiding uit open data, geen juridisch gewaarmerkt kadastraal onderzoek.
+  </p>
+
   <div id="resultaat">
     <div class="hero-stat">
       <div class="label">Footprint (voetprint)</div>
@@ -443,8 +454,21 @@ PREFIX nen3610: <http://modellen.geostandaarden.nl/def/nen3610#>
 const PREFIXES_RCE = `PREFIX ceo: <https://linkeddata.cultureelerfgoed.nl/def/ceo#>
 `;
 
+function fetchMetTimeout(url, opties = {}, timeoutMs = 15000) {
+  return fetch(url, { ...opties, signal: AbortSignal.timeout(timeoutMs) });
+}
+
+function sparqlString(waarde) {
+  return String(waarde)
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t');
+}
+
 async function sparqlSelect(endpoint, query) {
-  const resp = await fetch(endpoint, {
+  const resp = await fetchMetTimeout(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -459,6 +483,16 @@ async function sparqlSelect(endpoint, query) {
 
 function lit(row, key) {
   return row[key] ? row[key].value : null;
+}
+
+function maakRegisterLink(href, tekst) {
+  const a = document.createElement('a');
+  a.href = href;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.style.color = 'var(--rust)';
+  a.textContent = tekst;
+  return a;
 }
 
 function parseWKT(wkt) {
@@ -560,7 +594,7 @@ document.addEventListener('click', (e) => {
 async function zoekAdres(q) {
   try {
     const url = `https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(q)}&fq=type:adres&rows=5`;
-    const resp = await fetch(url);
+    const resp = await fetchMetTimeout(url);
     const data = await resp.json();
     const docs = data.response.docs;
     suggestionsBox.innerHTML = '';
@@ -583,7 +617,7 @@ async function zoekAdres(q) {
 }
 
 async function bestaatRijksmonument(nummer) {
-  const q = PREFIXES_RCE + `SELECT ?mon WHERE { ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${nummer}" . } LIMIT 1`;
+  const q = PREFIXES_RCE + `SELECT ?mon WHERE { ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${sparqlString(nummer)}" . } LIMIT 1`;
   const rows = await sparqlSelect(RCE_SPARQL, q);
   return rows.length > 0;
 }
@@ -591,7 +625,7 @@ async function bestaatRijksmonument(nummer) {
 async function haalRceBagRelaties(nummer) {
   const q = PREFIXES_RCE + `
 SELECT DISTINCT ?straat ?huisnr WHERE {
-  ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${nummer}" ; ceo:heeftBasisregistratieRelatie/ceo:heeftBAGRelatie ?bag .
+  ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${sparqlString(nummer)}" ; ceo:heeftBasisregistratieRelatie/ceo:heeftBAGRelatie ?bag .
   ?bag ceo:openbareRuimte ?straat ; ceo:huisnummer ?huisnr .
 }`;
   const rows = await sparqlSelect(RCE_SPARQL, q);
@@ -601,7 +635,7 @@ SELECT DISTINCT ?straat ?huisnr WHERE {
 async function haalRceBrkRelaties(nummer) {
   const q = PREFIXES_RCE + `
 SELECT DISTINCT ?sectie ?perceelnr ?gemeentenaam WHERE {
-  ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${nummer}" ; ceo:heeftBasisregistratieRelatie/ceo:heeftBRKRelatie ?brk .
+  ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${sparqlString(nummer)}" ; ceo:heeftBasisregistratieRelatie/ceo:heeftBRKRelatie ?brk .
   ?brk ceo:sectie ?sectie ; ceo:perceelnummer ?perceelnr ; ceo:gemeentenaam ?gemeentenaam .
 }`;
   const rows = await sparqlSelect(RCE_SPARQL, q);
@@ -611,7 +645,7 @@ SELECT DISTINCT ?sectie ?perceelnr ?gemeentenaam WHERE {
 async function haalRceOorspronkelijkeFunctie(nummer) {
   const q = PREFIXES_RCE + `PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT DISTINCT ?naam WHERE {
-  ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${nummer}" ;
+  ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${sparqlString(nummer)}" ;
     ceo:heeftOorspronkelijkeFunctie/ceo:heeftFunctieNaam/skos:prefLabel ?naam .
   FILTER(lang(?naam) = "nl")
 }`;
@@ -622,7 +656,7 @@ SELECT DISTINCT ?naam WHERE {
 async function haalRceInschrijvingsdatum(nummer) {
   const q = PREFIXES_RCE + `
 SELECT DISTINCT ?datum WHERE {
-  ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${nummer}" ; ceo:datumInschrijvingInMonumentenregister ?datum .
+  ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${sparqlString(nummer)}" ; ceo:datumInschrijvingInMonumentenregister ?datum .
 }`;
   const rows = await sparqlSelect(RCE_SPARQL, q);
   return rows.length ? lit(rows[0], 'datum') : null;
@@ -660,8 +694,10 @@ async function zoekRijksmonumentNummer(nummer) {
 
     if (!bagRelaties.length) {
       if (!brkRelaties.length) {
-        statusEl.innerHTML = `Rijksmonument ${nummer} gevonden, maar zonder straatadres én zonder kadastrale koppeling (mogelijk archeologisch of een ligplaats). ` +
-          `<a href="${registerLink}" target="_blank" rel="noopener" style="color:var(--rust)">Bekijk in het register ↗</a>`;
+        statusEl.replaceChildren(
+          document.createTextNode(`Rijksmonument ${nummer} gevonden, maar zonder straatadres én zonder kadastrale koppeling (mogelijk archeologisch of een ligplaats). `),
+          maakRegisterLink(registerLink, 'Bekijk in het register ↗')
+        );
         return;
       }
       statusEl.textContent = '';
@@ -672,7 +708,7 @@ async function zoekRijksmonumentNummer(nummer) {
     const eerste = bagRelaties[0];
     const zoekterm = `${eerste.straat} ${eerste.huisnummer}`.trim();
     const adresUrl = `https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(zoekterm)}&fq=type:adres&rows=1`;
-    const adresResp = await fetch(adresUrl);
+    const adresResp = await fetchMetTimeout(adresUrl);
     const adresData = await adresResp.json();
     const adresDoc = adresData.response.docs[0];
     if (!adresDoc) {
@@ -703,7 +739,7 @@ async function checkRijksmonument(pandFeature) {
     `&typeName=ps-ch:rce_inspire_points&outputFormat=application/json&srsName=EPSG:28992` +
     `&bbox=${bboxStr}&CQL_FILTER=namespace=%27nlps-rijksmonumenten%27`;
   try {
-    const resp = await fetch(url);
+    const resp = await fetchMetTimeout(url);
     const data = await resp.json();
     if (!data.features || !data.features.length) return null;
 
@@ -766,7 +802,7 @@ async function haalPerceelViaGekoppeldPerceel(doc) {
 }
 
 async function haalPerceelBijAdres(postcode, huisnummer) {
-  const pcEsc = (postcode || '').replace(/"/g, '').replace(/\s/g, '');
+  const pcEsc = sparqlString((postcode || '').replace(/\s/g, ''));
   const q = PREFIXES_KKG + `
 SELECT DISTINCT ?perceel ?sectie ?perceelnummer WHERE {
   ?adres a imxgeo:Adres ; imxgeo:postcode "${pcEsc}" ; imxgeo:huisnummer ${Number(huisnummer)} ; imxgeo:isAdresVanGebouw ?geb .
@@ -803,7 +839,7 @@ SELECT ?sectie ?perceelnummer ?plaatsnaam ?grootte ?wkt ?puntwkt ?begin WHERE {
 }
 
 async function haalPerceelBijAanduidingNationaal(sectie, perceelnummer) {
-  const sectieEsc = (sectie || '').replace(/"/g, '').trim().toUpperCase();
+  const sectieEsc = sparqlString((sectie || '').trim().toUpperCase());
   const q = PREFIXES_KKG + `
 SELECT DISTINCT ?perceel ?plaatsnaam ?puntwkt WHERE {
   ?perceel a imxgeo:Perceel ; ext:sectie "${sectieEsc}" ; ext:perceelnummer ${Number(perceelnummer)} ;
@@ -939,16 +975,28 @@ function toonPerceelcheck(resultaat) {
     ? `RCE registreert ${resultaat.details.length} kadastrale aanduidingen voor dit monument:`
     : 'RCE registreert de volgende kadastrale aanduiding:';
 
-  const regels = resultaat.details.map(d => {
+  detail.replaceChildren(
+    document.createTextNode(resultaat.samenvatting),
+    document.createElement('br'),
+    document.createTextNode(inleiding)
+  );
+
+  resultaat.details.forEach(d => {
     const ic = icoonPerStatus[d.status] || '·';
     const kleur = kleurPerStatus[d.status] || '#4a5a58';
     let stukje = `${ic} ${d.brk.sectie} ${d.brk.perceelnummer} (${d.brk.gemeentenaam}) — ${uitlegPerStatus[d.status] || d.status}`;
     if (d.afstandM != null) stukje += ` (Δ ${d.afstandM.toFixed(0)} m)`;
     else if (d.opmerking) stukje += ` — ${d.opmerking}`;
-    return `<span style="display:block;margin-top:3px;color:${kleur};font-family:var(--mono);font-size:11px;">${stukje}</span>`;
-  }).join('');
 
-  detail.innerHTML = `${resultaat.samenvatting}<br>${inleiding}${regels}`;
+    const regel = document.createElement('span');
+    regel.style.display = 'block';
+    regel.style.marginTop = '3px';
+    regel.style.color = kleur;
+    regel.style.fontFamily = 'var(--mono)';
+    regel.style.fontSize = '11px';
+    regel.textContent = stukje;
+    detail.appendChild(regel);
+  });
 }
 
 function toonPerceel(wkt, fitMap) {
@@ -969,7 +1017,7 @@ function toonPerceel(wkt, fitMap) {
 function toonBeperkingen(lijst) {
   const ul = document.getElementById('beperkingen-lijst');
   const leeg = document.getElementById('beperkingen-leeg');
-  ul.innerHTML = '';
+  ul.replaceChildren();
   if (!lijst || !lijst.length) {
     leeg.style.display = 'block';
     return;
@@ -977,7 +1025,10 @@ function toonBeperkingen(lijst) {
   leeg.style.display = 'none';
   lijst.forEach(b => {
     const li = document.createElement('li');
-    li.innerHTML = `<span class="code">${b.code || '–'}</span>${b.label || 'Onbekende beperking'}`;
+    const code = document.createElement('span');
+    code.className = 'code';
+    code.textContent = b.code || '–';
+    li.append(code, document.createTextNode(b.label || 'Onbekende beperking'));
     ul.appendChild(li);
   });
 }
@@ -1028,7 +1079,10 @@ async function toonPerceelZonderAdres(nummer, brkRelaties, registerLink, gen) {
   resultaatEl.style.display = 'block';
   document.getElementById('stat-footprint').innerHTML = '–<span>m²</span>';
   document.getElementById('monument-badge').classList.remove('zichtbaar');
-  document.getElementById('v-adres').innerHTML = `Geen BAG-adres — <a href="${registerLink}" target="_blank" rel="noopener" style="color:var(--rust)">register ↗</a>`;
+  document.getElementById('v-adres').replaceChildren(
+    document.createTextNode('Geen BAG-adres — '),
+    maakRegisterLink(registerLink, 'register ↗')
+  );
   ['v-id', 'v-bouwjaar', 'v-gebruiksdoel', 'v-oorspronkelijke-functie', 'v-status', 'v-vbo', 'v-nen'].forEach(id => document.getElementById(id).textContent = '–');
   document.getElementById('v-energielabel').textContent = 'n.v.t.';
   if (pandLayer) { map.removeLayer(pandLayer); pandLayer = null; }
@@ -1065,14 +1119,20 @@ function toonKadastralePicker(kandidaten, gemeenteHint, onKies) {
   filterInput.value = gemeenteHint || '';
 
   function render(filterTekst) {
-    lijst.innerHTML = '';
+    lijst.replaceChildren();
     const f = (filterTekst || '').toLowerCase();
     kandidaten
       .filter(k => !f || k.plaatsnaam.toLowerCase().includes(f))
       .forEach(k => {
         const div = document.createElement('div');
         div.className = 'kad-kandidaat';
-        div.innerHTML = `<span class="plaats">${k.plaatsnaam}</span><span class="aanduiding">${k.sectie} ${k.perceelnummer}</span>`;
+        const plaats = document.createElement('span');
+        plaats.className = 'plaats';
+        plaats.textContent = k.plaatsnaam;
+        const aanduiding = document.createElement('span');
+        aanduiding.className = 'aanduiding';
+        aanduiding.textContent = `${k.sectie} ${k.perceelnummer}`;
+        div.append(plaats, aanduiding);
         div.onclick = () => {
           overlay.classList.remove('zichtbaar');
           if (kadPickerOnKies) kadPickerOnKies(k);
@@ -1099,7 +1159,7 @@ async function toonKadastraalResultaatDirect(kandidaat, gen) {
     const eerste = adressen[0];
     try {
       const zoekterm = `${eerste.postcode} ${eerste.huisnummer}`;
-      const resp = await fetch(`https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(zoekterm)}&fq=type:adres&rows=1`);
+      const resp = await fetchMetTimeout(`https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(zoekterm)}&fq=type:adres&rows=1`);
       const data = await resp.json();
       const doc = data.response.docs[0];
       if (gen != null && gen !== requestGen) return;
@@ -1249,7 +1309,7 @@ async function verwerkAdres(doc, context) {
     const bbox = `${x - marge},${y - marge},${x + marge},${y + marge},EPSG:28992`;
     const wfsUrl = `https://service.pdok.nl/lv/bag/wfs/v2_0?service=WFS&version=2.0.0&request=GetFeature` +
       `&typeName=bag:pand&outputFormat=application/json&srsName=EPSG:28992&bbox=${bbox}`;
-    const resp = await fetch(wfsUrl);
+    const resp = await fetchMetTimeout(wfsUrl);
     const data = await resp.json();
     if (myGen !== requestGen) return;
 
@@ -1261,8 +1321,7 @@ async function verwerkAdres(doc, context) {
     const punt = turf.point([x, y]);
     let pand = data.features.find(f => {
       try {
-        const poly = turf.polygon(f.geometry.type === 'Polygon' ? f.geometry.coordinates : f.geometry.coordinates[0]);
-        return turf.booleanPointInPolygon(punt, poly);
+        return turf.booleanPointInPolygon(punt, turf.feature(f.geometry));
       } catch (e) { return false; }
     }) || data.features[0];
 
