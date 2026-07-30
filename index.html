@@ -886,12 +886,29 @@ function toonPerceelcheck(resultaat) {
   icoon.textContent = teksten[resultaat.status][0];
   titel.textContent = teksten[resultaat.status][1];
 
-  const eersteDetail = resultaat.details[0];
-  let detailTekst = resultaat.samenvatting;
-  if (eersteDetail && eersteDetail.afstandM != null) detailTekst += ` (Δ ${eersteDetail.afstandM.toFixed(0)} m)`;
-  if (eersteDetail && eersteDetail.opmerking) detailTekst += ' — ' + eersteDetail.opmerking;
-  const rceLijst = resultaat.details.map(d => `${d.brk.sectie} ${d.brk.perceelnummer} (${d.brk.gemeentenaam})`).join(', ');
-  detail.innerHTML = `${detailTekst}<br><span style="font-family:var(--mono);font-size:11px;">RCE: ${rceLijst}</span>`;
+  const icoonPerStatus = { MATCH: '✓', AMBIGUOUS: '?', MISMATCH: '!', UNRESOLVABLE: '×' };
+  const kleurPerStatus = { MATCH: '#3f7d3a', AMBIGUOUS: '#b5871f', MISMATCH: '#b5341f', UNRESOLVABLE: '#4a5a58' };
+  const uitlegPerStatus = {
+    MATCH: 'komt overeen',
+    AMBIGUOUS: 'mogelijk verouderd',
+    MISMATCH: 'komt niet overeen',
+    UNRESOLVABLE: 'niet gevonden in Kadaster'
+  };
+
+  const inleiding = resultaat.details.length > 1
+    ? `RCE registreert ${resultaat.details.length} kadastrale aanduidingen voor dit monument:`
+    : 'RCE registreert de volgende kadastrale aanduiding:';
+
+  const regels = resultaat.details.map(d => {
+    const ic = icoonPerStatus[d.status] || '·';
+    const kleur = kleurPerStatus[d.status] || '#4a5a58';
+    let stukje = `${ic} ${d.brk.sectie} ${d.brk.perceelnummer} (${d.brk.gemeentenaam}) — ${uitlegPerStatus[d.status] || d.status}`;
+    if (d.afstandM != null) stukje += ` (Δ ${d.afstandM.toFixed(0)} m)`;
+    else if (d.opmerking) stukje += ` — ${d.opmerking}`;
+    return `<span style="display:block;margin-top:3px;color:${kleur};font-family:var(--mono);font-size:11px;">${stukje}</span>`;
+  }).join('');
+
+  detail.innerHTML = `${resultaat.samenvatting}<br>${inleiding}${regels}`;
 }
 
 function toonPerceel(wkt, fitMap) {
@@ -1081,17 +1098,7 @@ async function verwerkPerceelVoorAdres(doc, rmnr, brkRelatiesHint, myGen) {
     }
     if (myGen !== requestGen) return;
 
-    if (!percelen.length) {
-      verbergPerceelSectie('Geen perceel gevonden bij dit adres in de Kadaster Kennisgraaf.');
-    } else {
-      await toonPerceelResultaat(percelen[0].perceelUri, { fitMap: false, gen: myGen });
-      if (myGen !== requestGen) return;
-      if (percelen.length > 1) {
-        document.getElementById('perceel-status').textContent =
-          `Let op: dit pand raakt ${percelen.length} percelen — hierboven wordt alleen het eerste getoond.`;
-      }
-    }
-
+    let resultaat = null;
     if (rmnr) {
       const brkRelaties = brkRelatiesHint || await haalRceBrkRelaties(rmnr);
       if (myGen !== requestGen) return;
@@ -1100,11 +1107,30 @@ async function verwerkPerceelVoorAdres(doc, rmnr, brkRelatiesHint, myGen) {
         const [lon, lat] = doc.centroide_ll.replace('POINT(', '').replace(')', '').split(' ').map(Number);
         referencePunt = { lat, lon };
       }
-      const resultaat = await vergelijkPerceelMetRCE(brkRelaties, referencePunt, percelen);
+      resultaat = await vergelijkPerceelMetRCE(brkRelaties, referencePunt, percelen);
       if (myGen !== requestGen) return;
       toonPerceelcheck(resultaat);
     } else {
       document.getElementById('perceelcheck-badge').classList.remove('zichtbaar');
+    }
+
+    if (!percelen.length) {
+      const viaPerceelcheck = resultaat && resultaat.details.find(d => d.status === 'MATCH' && d.gekozenPerceelUri);
+      if (viaPerceelcheck) {
+        await toonPerceelResultaat(viaPerceelcheck.gekozenPerceelUri, { fitMap: false, gen: myGen });
+        if (myGen !== requestGen) return;
+        document.getElementById('perceel-status').textContent =
+          'Niet rechtstreeks gevonden via dit adres in de Kadaster Kennisgraaf — hierboven getoond op basis van de kadastrale aanduiding bij RCE.';
+      } else {
+        verbergPerceelSectie('Geen perceel gevonden bij dit adres in de Kadaster Kennisgraaf.');
+      }
+    } else {
+      await toonPerceelResultaat(percelen[0].perceelUri, { fitMap: false, gen: myGen });
+      if (myGen !== requestGen) return;
+      if (percelen.length > 1) {
+        document.getElementById('perceel-status').textContent =
+          `Let op: dit pand raakt ${percelen.length} percelen — hierboven wordt alleen het eerste getoond.`;
+      }
     }
   } catch (err) {
     if (myGen !== requestGen) return;
