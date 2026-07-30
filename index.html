@@ -364,6 +364,7 @@
     <div class="veld"><span class="label">Pand-ID</span><span class="waarde" id="v-id">–</span></div>
     <div class="veld"><span class="label">Bouwjaar</span><span class="waarde" id="v-bouwjaar">–</span></div>
     <div class="veld"><span class="label">Gebruiksdoel</span><span class="waarde" id="v-gebruiksdoel">–</span></div>
+    <div class="veld"><span class="label">Oorspronkelijke functie</span><span class="waarde" id="v-oorspronkelijke-functie">–</span></div>
     <div class="veld"><span class="label">Status</span><span class="waarde" id="v-status">–</span></div>
     <div class="veld"><span class="label">Verblijfsobjecten</span><span class="waarde" id="v-vbo">–</span></div>
     <div class="veld"><span class="label">Gebruiksopp. (NEN2580)</span><span class="waarde" id="v-nen">–</span></div>
@@ -605,6 +606,17 @@ SELECT DISTINCT ?sectie ?perceelnr ?gemeentenaam WHERE {
 }`;
   const rows = await sparqlSelect(RCE_SPARQL, q);
   return rows.map(r => ({ sectie: lit(r, 'sectie'), perceelnummer: lit(r, 'perceelnr'), gemeentenaam: lit(r, 'gemeentenaam') }));
+}
+
+async function haalRceOorspronkelijkeFunctie(nummer) {
+  const q = PREFIXES_RCE + `PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT DISTINCT ?naam WHERE {
+  ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${nummer}" ;
+    ceo:heeftOorspronkelijkeFunctie/ceo:heeftFunctieNaam/skos:prefLabel ?naam .
+  FILTER(lang(?naam) = "nl")
+}`;
+  const rows = await sparqlSelect(RCE_SPARQL, q);
+  return [...new Set(rows.map(r => lit(r, 'naam')).filter(Boolean))];
 }
 
 async function zoekRijksmonumentNummer(nummer) {
@@ -989,10 +1001,15 @@ async function toonPerceelZonderAdres(nummer, brkRelaties, registerLink, gen) {
   document.getElementById('stat-footprint').innerHTML = '–<span>m²</span>';
   document.getElementById('monument-badge').classList.remove('zichtbaar');
   document.getElementById('v-adres').innerHTML = `Geen BAG-adres — <a href="${registerLink}" target="_blank" rel="noopener" style="color:var(--rust)">register ↗</a>`;
-  ['v-id', 'v-bouwjaar', 'v-gebruiksdoel', 'v-status', 'v-vbo', 'v-nen'].forEach(id => document.getElementById(id).textContent = '–');
+  ['v-id', 'v-bouwjaar', 'v-gebruiksdoel', 'v-oorspronkelijke-functie', 'v-status', 'v-vbo', 'v-nen'].forEach(id => document.getElementById(id).textContent = '–');
   document.getElementById('v-energielabel').textContent = 'n.v.t.';
   if (pandLayer) { map.removeLayer(pandLayer); pandLayer = null; }
   if (marker) { map.removeLayer(marker); marker = null; }
+
+  haalRceOorspronkelijkeFunctie(nummer).then(namen => {
+    if (gen != null && gen !== requestGen) return;
+    document.getElementById('v-oorspronkelijke-functie').textContent = namen.length ? namen.join(', ') : '–';
+  }).catch(() => {});
 
   const resultaat = await vergelijkPerceelMetRCE(brkRelaties, null, []);
   toonPerceelcheck(resultaat);
@@ -1042,7 +1059,7 @@ async function toonKadastraalResultaatDirect(kandidaat, gen) {
   document.getElementById('monument-badge').classList.remove('zichtbaar');
   document.getElementById('perceelcheck-badge').classList.remove('zichtbaar');
   document.getElementById('v-adres').textContent = `${kandidaat.plaatsnaam} (via kadastrale aanduiding)`;
-  ['v-id', 'v-bouwjaar', 'v-gebruiksdoel', 'v-status', 'v-vbo', 'v-nen'].forEach(id => document.getElementById(id).textContent = '–');
+  ['v-id', 'v-bouwjaar', 'v-gebruiksdoel', 'v-oorspronkelijke-functie', 'v-status', 'v-vbo', 'v-nen'].forEach(id => document.getElementById(id).textContent = '–');
   document.getElementById('v-energielabel').textContent = 'n.v.t.';
   if (pandLayer) { map.removeLayer(pandLayer); pandLayer = null; }
   if (marker) { map.removeLayer(marker); marker = null; }
@@ -1100,6 +1117,11 @@ async function verwerkPerceelVoorAdres(doc, rmnr, brkRelatiesHint, myGen) {
 
     let resultaat = null;
     if (rmnr) {
+      haalRceOorspronkelijkeFunctie(rmnr).then(namen => {
+        if (myGen !== requestGen) return;
+        document.getElementById('v-oorspronkelijke-functie').textContent = namen.length ? namen.join(', ') : '–';
+      }).catch(() => {});
+
       const brkRelaties = brkRelatiesHint || await haalRceBrkRelaties(rmnr);
       if (myGen !== requestGen) return;
       let referencePunt = null;
@@ -1145,6 +1167,7 @@ async function verwerkAdres(doc, context) {
   resultaatEl.style.display = 'none';
   document.getElementById('monument-badge').classList.remove('zichtbaar');
   document.getElementById('perceelcheck-badge').classList.remove('zichtbaar');
+  document.getElementById('v-oorspronkelijke-functie').textContent = '–';
   verbergPerceelSectie('');
 
   const coords = doc.centroide_rd.replace('POINT(', '').replace(')', '').split(' ').map(Number);
