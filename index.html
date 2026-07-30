@@ -1028,7 +1028,7 @@ function toonKadastralePicker(kandidaten, gemeenteHint, onKies) {
   const titel = document.getElementById('kad-picker-titel');
   const lijst = document.getElementById('kad-picker-lijst');
   const filterInput = document.getElementById('kad-picker-filter');
-  titel.textContent = `${kandidaten.length} percelen gevonden voor ${kandidaten[0].sectie} ${kandidaten[0].perceelnummer} — kies er één`;
+  titel.textContent = `${kandidaten.length} percelen gevonden voor ${kandidaten[0].sectie} ${kandidaten[0].perceelnummer} - kies er één`;
   filterInput.value = gemeenteHint || '';
 
   function render(filterTekst) {
@@ -1142,7 +1142,7 @@ async function verwerkPerceelVoorAdres(doc, rmnr, brkRelatiesHint, myGen) {
         await toonPerceelResultaat(viaPerceelcheck.gekozenPerceelUri, { fitMap: false, gen: myGen });
         if (myGen !== requestGen) return;
         document.getElementById('perceel-status').textContent =
-          'Niet rechtstreeks gevonden via dit adres in de Kadaster Kennisgraaf — hierboven getoond op basis van de kadastrale aanduiding bij RCE.';
+          'Niet rechtstreeks gevonden via dit adres in de Kadaster Kennisgraaf, hierboven getoond op basis van de kadastrale aanduiding bij RCE.';
       } else {
         verbergPerceelSectie('Geen perceel gevonden bij dit adres in de Kadaster Kennisgraaf.');
       }
@@ -1151,7 +1151,7 @@ async function verwerkPerceelVoorAdres(doc, rmnr, brkRelatiesHint, myGen) {
       if (myGen !== requestGen) return;
       if (percelen.length > 1) {
         document.getElementById('perceel-status').textContent =
-          `Let op: dit pand raakt ${percelen.length} percelen — hierboven wordt alleen het eerste getoond.`;
+          `Let op: dit pand raakt ${percelen.length} percelen, hierboven wordt alleen het eerste getoond.`;
       }
     }
   } catch (err) {
