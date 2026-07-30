@@ -8,7 +8,7 @@ Eén statisch HTML-bestand, geen build-stap, geen backend, alle data wordt recht
 
 - **Adres**, via de PDOK Locatieserver, zoals in v1. Het perceel wordt bij voorkeur herleid via het `gekoppeld_perceel`-veld dat PDOK al meegeeft; alleen als dat ontbreekt valt de app terug op een postcode+huisnummer-zoekopdracht in de Kadaster Kennisgraaf (niet elk adres heeft een postcode, en niet elk adres staat daar met een directe koppeling in).
 - **Rijksmonumentnummer**, haalt bij RCE zowel de BAG-koppeling (adres) als de BRK-koppeling(en) (kadastrale aanduiding) op, en toont het nummer met een link naar de specifieke pagina in het monumentenregister (opent in een nieuw tabblad). Toont ook de oorspronkelijke functie (`ceo:heeftOorspronkelijkeFunctie`) naast het huidige BAG-gebruiksdoel.
-- **Kadastrale aanduiding** (bv. `F 3945`), zoekt landelijk in de Kadaster Kennisgraaf. Omdat sectie+perceelnummer niet landelijk uniek is, toont de app bij meerdere treffers een keuzelijst (met filter) in plaats van automatisch de eerste te kiezen.
+- **Kadastrale aanduiding** (bv. `F 3945`), zoekt landelijk in de Kadaster Kennisgraaf. Omdat sectie+perceelnummer niet landelijk uniek is, toont de app bij meerdere treffers een keuzelijst (met filter) in plaats van automatisch de eerste te kiezen. Staat er een gebouw op het gekozen perceel, dan zoekt de app het bijbehorende adres erbij op en toont de volledige pandweergave (footprint, bouwjaar, gebruiksdoel); staat er niets op, dan blijft het bij de kale perceelinformatie.
 
 Als het adres zelf geen perceel oplevert maar de perceelcheck (zie hieronder) via RCE wél een betrouwbare match vindt, toont de app dat perceel alsnog, met een duidelijke toelichting dat het niet rechtstreeks via het adres is gevonden.
 
