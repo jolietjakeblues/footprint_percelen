@@ -619,6 +619,24 @@ SELECT DISTINCT ?naam WHERE {
   return [...new Set(rows.map(r => lit(r, 'naam')).filter(Boolean))];
 }
 
+async function haalRceInschrijvingsdatum(nummer) {
+  const q = PREFIXES_RCE + `
+SELECT DISTINCT ?datum WHERE {
+  ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${nummer}" ; ceo:datumInschrijvingInMonumentenregister ?datum .
+}`;
+  const rows = await sparqlSelect(RCE_SPARQL, q);
+  return rows.length ? lit(rows[0], 'datum') : null;
+}
+
+function toonMonumentBadgeVoorRmnr(nummer, datumIso) {
+  const badge = document.getElementById('monument-badge');
+  const jaar = datumIso ? datumIso.slice(0, 4) : '';
+  document.getElementById('monument-info').textContent =
+    (jaar ? `Beschermd sinds ${jaar}` : 'Beschermd rijksmonument') + ` · nr. ${nummer}`;
+  document.getElementById('monument-link').href = `https://monumentenregister.cultureelerfgoed.nl/monumenten/${nummer}`;
+  badge.classList.add('zichtbaar');
+}
+
 async function zoekRijksmonumentNummer(nummer) {
   document.getElementById('kad-picker').classList.remove('zichtbaar');
   statusEl.textContent = `Rijksmonument ${nummer} opzoeken…`;
@@ -1011,6 +1029,11 @@ async function toonPerceelZonderAdres(nummer, brkRelaties, registerLink, gen) {
     document.getElementById('v-oorspronkelijke-functie').textContent = namen.length ? namen.join(', ') : '–';
   }).catch(() => {});
 
+  haalRceInschrijvingsdatum(nummer).then(datum => {
+    if (gen != null && gen !== requestGen) return;
+    toonMonumentBadgeVoorRmnr(nummer, datum);
+  }).catch(() => {});
+
   const resultaat = await vergelijkPerceelMetRCE(brkRelaties, null, []);
   toonPerceelcheck(resultaat);
 
@@ -1121,6 +1144,13 @@ async function verwerkPerceelVoorAdres(doc, rmnr, brkRelatiesHint, myGen) {
         if (myGen !== requestGen) return;
         document.getElementById('v-oorspronkelijke-functie').textContent = namen.length ? namen.join(', ') : '–';
       }).catch(() => {});
+
+      if (!document.getElementById('monument-badge').classList.contains('zichtbaar')) {
+        haalRceInschrijvingsdatum(rmnr).then(datum => {
+          if (myGen !== requestGen) return;
+          toonMonumentBadgeVoorRmnr(rmnr, datum);
+        }).catch(() => {});
+      }
 
       const brkRelaties = brkRelatiesHint || await haalRceBrkRelaties(rmnr);
       if (myGen !== requestGen) return;
