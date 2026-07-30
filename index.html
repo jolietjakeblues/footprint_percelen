@@ -830,6 +830,16 @@ SELECT DISTINCT ?code ?label WHERE {
   return rows.map(r => ({ code: lit(r, 'code'), label: lit(r, 'label') }));
 }
 
+async function haalAdresBijPerceel(perceelUri) {
+  const q = PREFIXES_KKG + `
+SELECT DISTINCT ?postcode ?huisnummer WHERE {
+  ?geb imxgeo:bevindtZichOpPerceel <${perceelUri}> .
+  ?adres imxgeo:isAdresVanGebouw ?geb ; imxgeo:postcode ?postcode ; imxgeo:huisnummer ?huisnummer .
+} LIMIT 5`;
+  const rows = await sparqlSelect(KKG_SPARQL, q);
+  return rows.map(r => ({ postcode: lit(r, 'postcode'), huisnummer: Number(lit(r, 'huisnummer')) }));
+}
+
 async function vergelijkPerceelMetRCE(brkRelaties, referencePunt, bekendePercelen) {
   bekendePercelen = bekendePercelen || [];
   if (!brkRelaties || !brkRelaties.length) {
@@ -1077,11 +1087,41 @@ function toonKadastralePicker(kandidaten, gemeenteHint, onKies) {
 
 async function toonKadastraalResultaatDirect(kandidaat, gen) {
   if (gen != null && gen !== requestGen) return;
+
+  statusEl.textContent = 'Adres bij dit perceel opzoeken…';
+  let adressen = [];
+  try {
+    adressen = await haalAdresBijPerceel(kandidaat.perceelUri);
+  } catch (e) { adressen = []; }
+  if (gen != null && gen !== requestGen) return;
+
+  if (adressen.length) {
+    const eerste = adressen[0];
+    try {
+      const zoekterm = `${eerste.postcode} ${eerste.huisnummer}`;
+      const resp = await fetch(`https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(zoekterm)}&fq=type:adres&rows=1`);
+      const data = await resp.json();
+      const doc = data.response.docs[0];
+      if (gen != null && gen !== requestGen) return;
+      if (doc) {
+        input.value = doc.weergavenaam;
+        statusEl.textContent = '';
+        await verwerkAdres(doc);
+        if (adressen.length > 1) {
+          document.getElementById('perceel-status').textContent =
+            `Let op: op dit perceel staan ${adressen.length} adressen — hierboven wordt alleen het eerste getoond.`;
+        }
+        return;
+      }
+    } catch (e) { /* val terug op de kale perceelweergave hieronder */ }
+  }
+
+  statusEl.textContent = '';
   resultaatEl.style.display = 'block';
   document.getElementById('stat-footprint').innerHTML = '–<span>m²</span>';
   document.getElementById('monument-badge').classList.remove('zichtbaar');
   document.getElementById('perceelcheck-badge').classList.remove('zichtbaar');
-  document.getElementById('v-adres').textContent = `${kandidaat.plaatsnaam} (via kadastrale aanduiding)`;
+  document.getElementById('v-adres').textContent = `Geen adres gevonden op dit perceel — ${kandidaat.plaatsnaam} (via kadastrale aanduiding)`;
   ['v-id', 'v-bouwjaar', 'v-gebruiksdoel', 'v-oorspronkelijke-functie', 'v-status', 'v-vbo', 'v-nen'].forEach(id => document.getElementById(id).textContent = '–');
   document.getElementById('v-energielabel').textContent = 'n.v.t.';
   if (pandLayer) { map.removeLayer(pandLayer); pandLayer = null; }
