@@ -2,7 +2,7 @@
 
 Uitbreiding op [footprint](https://github.com/jolietjakeblues/footprint): naast de pandoppervlakte (BAG) toont deze versie ook het kadastrale perceel, alle publiekrechtelijke beperkingen (BRK-PB/WKPB) op dat perceel, en een controle of de kadastrale aanduiding die het Rijksmonumentenregister (RCE) registreert nog overeenkomt met het actuele perceel bij het Kadaster.
 
-Eén statisch HTML-bestand, geen build-stap, geen backend, alle data wordt rechtstreeks vanuit de browser opgehaald.
+Een statische browserapp zonder build-stap of backend; alle data wordt rechtstreeks vanuit de browser opgehaald. De testbare geometrie- en veiligheidsfuncties staan in `core.js`.
 
 ## Zoeken op
 
@@ -34,7 +34,24 @@ Bekende beperking: RCE's gemeentenaam bij een BRK-relatie is vaak een historisch
 
 ## Draaien
 
-Statisch bestand, geen dependencies om te installeren. Open `index.html` via een lokale webserver (bv. `python -m http.server`) of host het op GitHub Pages.
+Statische bestanden, geen productie-dependencies om te installeren. Open de app via een lokale webserver (bv. `python -m http.server`) of host hem op GitHub Pages.
+
+## Betrouwbaarheid en onzekerheid
+
+- Een BAG-pand wordt gekozen op basis van containment van het adrespunt; alleen binnen een begrensde marge wordt het geometrisch dichtstbijzijnde pand als fallback gebruikt.
+- Een automatisch gevonden RCE-monument stuurt de perceelcheck alleen aan wanneer het monumentpunt binnen de BAG-pandgeometrie ligt. Een punt vlak buiten het pand wordt uitsluitend als ruimtelijke indicatie getoond.
+- Als een pand meerdere percelen raakt, worden alle gevonden percelen, geometrieën en publiekrechtelijke beperkingen getoond.
+- Resultaten blijven technische afleidingen uit open data en zijn geen juridisch gewaarmerkt kadastraal onderzoek.
+
+## Tests
+
+De pure geometrie-, WKT-, selectie- en URL-validatiefuncties zijn zonder build tooling te testen:
+
+```powershell
+node --test tests/core.test.js
+```
+
+De tests dekken onder andere CRS-prefixen en multipolygonen, selectie onafhankelijk van bronvolgorde, afstandsgrenzen en blokkering van onveilige externe URL's.
 
 ## Licentie
 

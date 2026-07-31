@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://api.pdok.nl https://service.pdok.nl https://api.labs.kadaster.nl https://api.linkeddata.cultureelerfgoed.nl; img-src 'self' data: https://*.tile.openstreetmap.org https://cdnjs.cloudflare.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <title>Pandoppervlakte &amp; percelen</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -85,13 +87,19 @@
     display: none;
   }
   .suggestion {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--panel);
+    border: 0;
     padding: 10px 14px;
     font-size: 14px;
+    font-family: var(--sans);
     cursor: pointer;
     border-bottom: 1px solid var(--line);
   }
   .suggestion:last-child { border-bottom: none; }
-  .suggestion:hover { background: var(--rust-dim); }
+  .suggestion:hover, .suggestion:focus-visible { background: var(--rust-dim); outline: 2px solid var(--rust); outline-offset: -2px; }
 
   #status {
     font-family: var(--mono);
@@ -333,6 +341,13 @@
     color: var(--slate);
     cursor: pointer;
   }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  @media (max-width: 760px) {
+    body { display: block; height: auto; min-height: 100%; overflow: auto; }
+    #sidebar { width: 100%; max-height: none; padding: 20px 18px; border-right: 0; }
+    #map { width: 100%; height: 52vh; min-height: 360px; }
+    #kad-picker-paneel { width: calc(100% - 24px); max-height: 85vh; }
+  }
 </style>
 </head>
 <body>
@@ -342,11 +357,12 @@
   <h1>Klopt het perceel<br>bij dit rijksmonument?</h1>
 
   <div class="search-wrap">
-    <input id="adres-input" type="text" placeholder="Adres, rijksmonumentnummer, of kadastrale aanduiding (bv. F 3945)" autocomplete="off">
-    <div id="suggestions"></div>
+    <label class="sr-only" for="adres-input">Adres, rijksmonumentnummer of kadastrale aanduiding</label>
+    <input id="adres-input" type="text" placeholder="Adres, rijksmonumentnummer, of kadastrale aanduiding (bv. F 3945)" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false">
+    <div id="suggestions" role="listbox"></div>
   </div>
 
-  <div id="status"></div>
+  <div id="status" role="status" aria-live="polite"></div>
 
   <p class="privacy-note">
     Je zoekopdracht (adres, rijksmonumentnummer of kadastrale aanduiding) en de bijbehorende coördinaten gaan rechtstreeks vanuit je browser naar PDOK, de Kadaster Kennisgraaf en RCE, deze pagina zelf slaat niets op. De uitkomst is een technische afleiding uit open data, geen juridisch gewaarmerkt kadastraal onderzoek.
@@ -412,20 +428,20 @@
 
 <div id="map"></div>
 
-<div id="kad-picker">
-  <div id="kad-picker-paneel">
+<div id="kad-picker" role="dialog" aria-modal="true" aria-labelledby="kad-picker-titel" aria-hidden="true">
+  <div id="kad-picker-paneel" tabindex="-1">
     <div id="kad-picker-header">
       <h2 id="kad-picker-titel">Meerdere percelen gevonden</h2>
       <input id="kad-picker-filter" type="text" placeholder="Filter op gemeente…" autocomplete="off">
     </div>
     <div id="kad-picker-lijst"></div>
-    <div id="kad-picker-sluiten">Sluiten</div>
+    <button id="kad-picker-sluiten" type="button">Sluiten</button>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
+<script src="core.js"></script>
 <script>
 proj4.defs("EPSG:28992",
   "+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 " +
@@ -453,9 +469,22 @@ PREFIX nen3610: <http://modellen.geostandaarden.nl/def/nen3610#>
 `;
 const PREFIXES_RCE = `PREFIX ceo: <https://linkeddata.cultureelerfgoed.nl/def/ceo#>
 `;
+const { parseWKT, pointInGeometry, geometryBBox, selectBuilding, selectMonument, safeHttpUrl } = FootprintCore;
 
 function fetchMetTimeout(url, opties = {}, timeoutMs = 15000) {
   return fetch(url, { ...opties, signal: AbortSignal.timeout(timeoutMs) });
+}
+
+async function fetchJson(url, opties) {
+  const resp = await fetchMetTimeout(url, opties);
+  if (!resp.ok) throw new Error(`Bronfout (${resp.status})`);
+  return resp.json();
+}
+
+function sparqlUri(waarde) {
+  const url = safeHttpUrl(waarde, ['.kadaster.nl']);
+  if (!url) throw new Error('Ongeldige Kadaster-URI');
+  return url.replace(/>/g, '%3E');
 }
 
 function sparqlString(waarde) {
@@ -487,40 +516,12 @@ function lit(row, key) {
 
 function maakRegisterLink(href, tekst) {
   const a = document.createElement('a');
-  a.href = href;
+  a.href = safeHttpUrl(href, ['monumentenregister.cultureelerfgoed.nl']) || 'https://monumentenregister.cultureelerfgoed.nl/';
   a.target = '_blank';
   a.rel = 'noopener';
   a.style.color = 'var(--rust)';
   a.textContent = tekst;
   return a;
-}
-
-function parseWKT(wkt) {
-  if (!wkt) return null;
-  function coordListNaarLatLng(str) {
-    return str.trim().split(',').map(paar => {
-      const [lon, lat] = paar.trim().split(/\s+/).map(Number);
-      return [lat, lon];
-    });
-  }
-  if (wkt.startsWith('POINT')) {
-    const binnen = wkt.match(/POINT\(([^)]+)\)/)[1];
-    const [lon, lat] = binnen.trim().split(/\s+/).map(Number);
-    return { type: 'Point', latlng: [lat, lon] };
-  }
-  if (wkt.startsWith('MULTIPOLYGON')) {
-    const binnen = wkt.slice(wkt.indexOf('(((') + 2, wkt.lastIndexOf(')))') + 1);
-    const polys = binnen.split(')),((').map(polyStr =>
-      polyStr.replace(/^\(+/, '').replace(/\)+$/, '').split('),(').map(coordListNaarLatLng)
-    );
-    return { type: 'MultiPolygon', polys };
-  }
-  if (wkt.startsWith('POLYGON')) {
-    const binnen = wkt.slice(wkt.indexOf('((') + 2, wkt.lastIndexOf('))'));
-    const rings = binnen.split('),(').map(coordListNaarLatLng);
-    return { type: 'Polygon', rings };
-  }
-  return null;
 }
 
 function haversineMeters(lat1, lon1, lat2, lon2) {
@@ -554,63 +555,76 @@ input.addEventListener('input', () => {
 
   if (/^[0-9]{2,7}$/.test(q)) {
     suggestionsBox.innerHTML = '';
-    const div = document.createElement('div');
+    const div = document.createElement('button');
+    div.type = 'button';
+    div.setAttribute('role', 'option');
     div.className = 'suggestion';
     div.textContent = `Rijksmonument nr. ${q} opzoeken`;
     div.onclick = () => {
-      suggestionsBox.style.display = 'none';
+      suggestionsBox.style.display = 'none'; input.setAttribute('aria-expanded', 'false');
       zoekRijksmonumentNummer(q);
     };
     suggestionsBox.appendChild(div);
-    suggestionsBox.style.display = 'block';
+    suggestionsBox.style.display = 'block'; input.setAttribute('aria-expanded', 'true');
     return;
   }
 
   const kadParsed = parseKadastraleAanduiding(q);
   if (kadParsed) {
     suggestionsBox.innerHTML = '';
-    const div = document.createElement('div');
+    const div = document.createElement('button');
+    div.type = 'button';
+    div.setAttribute('role', 'option');
     div.className = 'suggestion';
     div.textContent = `Kadastrale aanduiding "${kadParsed.sectie} ${kadParsed.perceelnummer}" opzoeken`;
     div.onclick = () => {
-      suggestionsBox.style.display = 'none';
+      suggestionsBox.style.display = 'none'; input.setAttribute('aria-expanded', 'false');
       zoekKadastraleAanduiding(q);
     };
     suggestionsBox.appendChild(div);
-    suggestionsBox.style.display = 'block';
+    suggestionsBox.style.display = 'block'; input.setAttribute('aria-expanded', 'true');
     return;
   }
 
-  if (q.length < 4) { suggestionsBox.style.display = 'none'; return; }
+  if (q.length < 4) { suggestionsBox.style.display = 'none'; input.setAttribute('aria-expanded', 'false'); return; }
   debounceTimer = setTimeout(() => zoekAdres(q), 300);
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    suggestionsBox.style.display = 'none'; input.setAttribute('aria-expanded', 'false');
+    input.setAttribute('aria-expanded', 'false');
+    document.getElementById('kad-picker-sluiten').click();
+  }
 });
 
 document.addEventListener('click', (e) => {
   if (!suggestionsBox.contains(e.target) && e.target !== input) {
-    suggestionsBox.style.display = 'none';
+    suggestionsBox.style.display = 'none'; input.setAttribute('aria-expanded', 'false');
   }
 });
 
 async function zoekAdres(q) {
   try {
     const url = `https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(q)}&fq=type:adres&rows=5`;
-    const resp = await fetchMetTimeout(url);
-    const data = await resp.json();
+    const data = await fetchJson(url);
     const docs = data.response.docs;
     suggestionsBox.innerHTML = '';
-    if (!docs.length) { suggestionsBox.style.display = 'none'; return; }
+    if (!docs.length) { suggestionsBox.style.display = 'none'; input.setAttribute('aria-expanded', 'false'); return; }
     docs.forEach(doc => {
-      const div = document.createElement('div');
+      const div = document.createElement('button');
+      div.type = 'button';
+      div.setAttribute('role', 'option');
       div.className = 'suggestion';
       div.textContent = doc.weergavenaam;
       div.onclick = () => {
         input.value = doc.weergavenaam;
-        suggestionsBox.style.display = 'none';
+        suggestionsBox.style.display = 'none'; input.setAttribute('aria-expanded', 'false');
         verwerkAdres(doc);
       };
       suggestionsBox.appendChild(div);
     });
-    suggestionsBox.style.display = 'block';
+    suggestionsBox.style.display = 'block'; input.setAttribute('aria-expanded', 'true');
   } catch (err) {
     statusEl.textContent = 'Fout bij zoeken: ' + err.message;
   }
@@ -708,8 +722,7 @@ async function zoekRijksmonumentNummer(nummer) {
     const eerste = bagRelaties[0];
     const zoekterm = `${eerste.straat} ${eerste.huisnummer}`.trim();
     const adresUrl = `https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(zoekterm)}&fq=type:adres&rows=1`;
-    const adresResp = await fetchMetTimeout(adresUrl);
-    const adresData = await adresResp.json();
+    const adresData = await fetchJson(adresUrl);
     const adresDoc = adresData.response.docs[0];
     if (!adresDoc) {
       statusEl.textContent = `Rijksmonument ${nummer} gevonden (${zoekterm}), maar adres kon niet worden herleid naar coördinaten.`;
@@ -724,37 +737,18 @@ async function zoekRijksmonumentNummer(nummer) {
   }
 }
 
-function rdCentroid(ring) {
-  let x = 0, y = 0;
-  const n = ring.length - 1;
-  for (let i = 0; i < n; i++) { x += ring[i][0]; y += ring[i][1]; }
-  return [x / n, y / n];
-}
-
 async function checkRijksmonument(pandFeature) {
-  const bbox = pandFeature.bbox;
+  const bbox = geometryBBox(pandFeature.geometry);
   const marge = 15;
   const bboxStr = `${bbox[0] - marge},${bbox[1] - marge},${bbox[2] + marge},${bbox[3] + marge},EPSG:28992`;
   const url = `https://service.pdok.nl/rce/ps-ch/wfs/v1_0?service=WFS&version=2.0.0&request=GetFeature` +
     `&typeName=ps-ch:rce_inspire_points&outputFormat=application/json&srsName=EPSG:28992` +
     `&bbox=${bboxStr}&CQL_FILTER=namespace=%27nlps-rijksmonumenten%27`;
   try {
-    const resp = await fetchMetTimeout(url);
-    const data = await resp.json();
+    const data = await fetchJson(url);
     if (!data.features || !data.features.length) return null;
 
-    const geometry = pandFeature.geometry;
-    const exteriorRing = geometry.type === 'Polygon' ? geometry.coordinates[0] : geometry.coordinates[0][0];
-    const centroid = rdCentroid(exteriorRing);
-
-    let beste = null, besteAfstand = Infinity;
-    data.features.forEach(f => {
-      const d = Math.hypot(f.geometry.coordinates[0] - centroid[0], f.geometry.coordinates[1] - centroid[1]);
-      if (d < besteAfstand) { besteAfstand = d; beste = f; }
-    });
-
-    if (beste && besteAfstand < 40) return beste;
-    return null;
+    return selectMonument(data.features, pandFeature.geometry, 10);
   } catch (err) {
     return null;
   }
@@ -816,12 +810,12 @@ SELECT DISTINCT ?perceel ?sectie ?perceelnummer WHERE {
 async function haalPerceelDetails(perceelUri) {
   const q = PREFIXES_KKG + `
 SELECT ?sectie ?perceelnummer ?plaatsnaam ?grootte ?wkt ?puntwkt ?begin WHERE {
-  <${perceelUri}> ext:sectie ?sectie ; ext:perceelnummer ?perceelnummer ; geo:hasMetricArea ?grootte ;
+  <${sparqlUri(perceelUri)}> ext:sectie ?sectie ; ext:perceelnummer ?perceelnummer ; geo:hasMetricArea ?grootte ;
     imxgeo:ligtInRegistratieveRuimte ?plaats .
   ?plaats a imxgeo:Gemeentegebied ; imxgeo:naam ?plaatsnaam .
-  OPTIONAL { <${perceelUri}> geo:hasGeometry/geo:asWKT ?wkt }
-  OPTIONAL { <${perceelUri}> ext:plaatscoordinaten/geo:asWKT ?puntwkt }
-  OPTIONAL { <${perceelUri}> imxgeo:registratiegegevens/nen3610:beginGeldigheid ?begin }
+  OPTIONAL { <${sparqlUri(perceelUri)}> geo:hasGeometry/geo:asWKT ?wkt }
+  OPTIONAL { <${sparqlUri(perceelUri)}> ext:plaatscoordinaten/geo:asWKT ?puntwkt }
+  OPTIONAL { <${sparqlUri(perceelUri)}> imxgeo:registratiegegevens/nen3610:beginGeldigheid ?begin }
 } LIMIT 1`;
   const rows = await sparqlSelect(KKG_SPARQL, q);
   if (!rows.length) return null;
@@ -841,17 +835,19 @@ SELECT ?sectie ?perceelnummer ?plaatsnaam ?grootte ?wkt ?puntwkt ?begin WHERE {
 async function haalPerceelBijAanduidingNationaal(sectie, perceelnummer) {
   const sectieEsc = sparqlString((sectie || '').trim().toUpperCase());
   const q = PREFIXES_KKG + `
-SELECT DISTINCT ?perceel ?plaatsnaam ?puntwkt WHERE {
+SELECT DISTINCT ?perceel ?plaatsnaam ?puntwkt ?wkt WHERE {
   ?perceel a imxgeo:Perceel ; ext:sectie "${sectieEsc}" ; ext:perceelnummer ${Number(perceelnummer)} ;
     imxgeo:ligtInRegistratieveRuimte ?plaats .
   ?plaats a imxgeo:Gemeentegebied ; imxgeo:naam ?plaatsnaam .
   OPTIONAL { ?perceel ext:plaatscoordinaten/geo:asWKT ?puntwkt }
+  OPTIONAL { ?perceel geo:hasGeometry/geo:asWKT ?wkt }
 } LIMIT 200`;
   const rows = await sparqlSelect(KKG_SPARQL, q);
   return rows.map(r => ({
     perceelUri: lit(r, 'perceel'),
     plaatsnaam: lit(r, 'plaatsnaam'),
     puntwkt: lit(r, 'puntwkt'),
+    wkt: lit(r, 'wkt'),
     sectie: sectieEsc,
     perceelnummer: Number(perceelnummer)
   }));
@@ -860,7 +856,7 @@ SELECT DISTINCT ?perceel ?plaatsnaam ?puntwkt WHERE {
 async function haalBeperkingen(perceelUri) {
   const q = PREFIXES_KKG + `
 SELECT DISTINCT ?code ?label WHERE {
-  ?b imxgeo:isBeperkingOpPerceel <${perceelUri}> ; imxgeo:grondslagcode ?code ; imxgeo:grondslag ?label .
+  ?b imxgeo:isBeperkingOpPerceel <${sparqlUri(perceelUri)}> ; imxgeo:grondslagcode ?code ; imxgeo:grondslag ?label .
 }`;
   const rows = await sparqlSelect(KKG_SPARQL, q);
   return rows.map(r => ({ code: lit(r, 'code'), label: lit(r, 'label') }));
@@ -869,7 +865,7 @@ SELECT DISTINCT ?code ?label WHERE {
 async function haalAdresBijPerceel(perceelUri) {
   const q = PREFIXES_KKG + `
 SELECT DISTINCT ?postcode ?huisnummer WHERE {
-  ?geb imxgeo:bevindtZichOpPerceel <${perceelUri}> .
+  ?geb imxgeo:bevindtZichOpPerceel <${sparqlUri(perceelUri)}> .
   ?adres imxgeo:isAdresVanGebouw ?geb ; imxgeo:postcode ?postcode ; imxgeo:huisnummer ?huisnummer .
 } LIMIT 5`;
   const rows = await sparqlSelect(KKG_SPARQL, q);
@@ -912,6 +908,20 @@ async function vergelijkPerceelMetRCE(brkRelaties, referencePunt, bekendePercele
       } else {
         details.push({ brk, status: 'AMBIGUOUS', kandidaten, opmerking: `${kandidaten.length} kandidaten landelijk gevonden, kies handmatig` });
       }
+      continue;
+    }
+
+    const bevatReferentiepunt = kandidaten.find(k => {
+      const parsed = parseWKT(k.wkt);
+      if (!parsed || parsed.type === 'Point') return false;
+      const geometry = parsed.type === 'Polygon'
+        ? { type: 'Polygon', coordinates: parsed.rings }
+        : { type: 'MultiPolygon', coordinates: parsed.polys };
+      return pointInGeometry([referencePunt.lat, referencePunt.lon], geometry);
+    });
+    if (bevatReferentiepunt) {
+      details.push({ brk, status: 'MATCH', afstandM: 0, gekozenPerceelUri: bevatReferentiepunt.perceelUri, kandidaten,
+        opmerking: 'adrespunt ligt binnen de actuele perceelgeometrie' });
       continue;
     }
 
@@ -1075,6 +1085,64 @@ async function toonPerceelResultaat(perceelUri, opts) {
   }
 }
 
+async function toonPercelenResultaat(percelen, opts) {
+  opts = opts || {};
+  const uniek = [...new Map((percelen || []).map(item => [item.perceelUri, item])).values()];
+  if (!uniek.length) return;
+  if (uniek.length === 1) return toonPerceelResultaat(uniek[0].perceelUri, opts);
+
+  const gen = opts.gen;
+  const geldig = () => gen == null || gen === requestGen;
+  document.getElementById('perceel-status').textContent = `${uniek.length} percelen en beperkingen laden…`;
+  const resultaten = await Promise.all(uniek.map(async item => {
+    const details = await haalPerceelDetails(item.perceelUri);
+    let beperkingen = [];
+    try { beperkingen = await haalBeperkingen(item.perceelUri); } catch (_) {}
+    return { details, beperkingen };
+  }));
+  if (!geldig()) return;
+
+  const beschikbaar = resultaten.filter(r => r.details);
+  document.getElementById('perceel-status').textContent = `Dit pand raakt ${beschikbaar.length} percelen; alle gevonden beperkingen staan hieronder.`;
+  document.getElementById('v-kad-aanduiding').textContent = beschikbaar.map(r => `${r.details.plaatsnaam} · ${r.details.sectie} ${r.details.perceelnummer}`).join(' | ');
+  document.getElementById('v-kad-grootte').textContent = beschikbaar.every(r => r.details.grootte)
+    ? `${beschikbaar.reduce((sum, r) => sum + Number(r.details.grootte), 0).toFixed(0)} m² totaal` : '–';
+  document.getElementById('v-kad-datum').textContent = 'Zie afzonderlijke percelen hieronder';
+
+  const ul = document.getElementById('beperkingen-lijst');
+  ul.replaceChildren();
+  document.getElementById('beperkingen-leeg').style.display = beschikbaar.some(r => r.beperkingen.length) ? 'none' : 'block';
+  beschikbaar.forEach(({ details, beperkingen }) => {
+    const heading = document.createElement('li');
+    const strong = document.createElement('strong');
+    strong.textContent = `${details.plaatsnaam} · ${details.sectie} ${details.perceelnummer}`;
+    heading.appendChild(strong);
+    ul.appendChild(heading);
+    beperkingen.forEach(b => {
+      const li = document.createElement('li');
+      const code = document.createElement('span');
+      code.className = 'code'; code.textContent = b.code || '–';
+      li.append(code, document.createTextNode(b.label || 'Onbekende beperking'));
+      ul.appendChild(li);
+    });
+    if (!beperkingen.length) {
+      const li = document.createElement('li'); li.textContent = 'Geen beperkingen geregistreerd op dit perceel.'; ul.appendChild(li);
+    }
+  });
+
+  if (perceelLayer) map.removeLayer(perceelLayer);
+  const lagen = beschikbaar.map(({ details }) => {
+    const geo = parseWKT(details.wkt);
+    if (!geo || geo.type === 'Point') return null;
+    return L.polygon(geo.type === 'Polygon' ? geo.rings : geo.polys, { color: '#4a5a58', weight: 2, dashArray: '6,4', fill: false });
+  }).filter(Boolean);
+  if (lagen.length) {
+    perceelLayer = L.featureGroup(lagen).addTo(map);
+    const kaartlagen = pandLayer ? [pandLayer, perceelLayer] : [perceelLayer];
+    map.fitBounds(L.featureGroup(kaartlagen).getBounds(), { padding: [60, 60], maxZoom: 19 });
+  }
+}
+
 async function toonPerceelZonderAdres(nummer, brkRelaties, registerLink, gen) {
   resultaatEl.style.display = 'block';
   document.getElementById('stat-footprint').innerHTML = '–<span>m²</span>';
@@ -1152,6 +1220,8 @@ function toonKadastralePicker(kandidaten, gemeenteHint, onKies) {
   render(filterInput.value);
   filterInput.oninput = () => render(filterInput.value);
   overlay.classList.add('zichtbaar');
+  overlay.setAttribute('aria-hidden', 'false');
+  document.getElementById('kad-picker-paneel').focus();
 }
 
 async function toonKadastraalResultaatDirect(kandidaat, gen) {
@@ -1168,8 +1238,7 @@ async function toonKadastraalResultaatDirect(kandidaat, gen) {
     const eerste = adressen[0];
     try {
       const zoekterm = `${eerste.postcode} ${eerste.huisnummer}`;
-      const resp = await fetchMetTimeout(`https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(zoekterm)}&fq=type:adres&rows=1`);
-      const data = await resp.json();
+      const data = await fetchJson(`https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(zoekterm)}&fq=type:adres&rows=1`);
       const doc = data.response.docs[0];
       if (gen != null && gen !== requestGen) return;
       if (doc) {
@@ -1286,12 +1355,8 @@ async function verwerkPerceelVoorAdres(doc, rmnr, brkRelatiesHint, myGen) {
         verbergPerceelSectie('Geen perceel gevonden bij dit adres in de Kadaster Kennisgraaf.');
       }
     } else {
-      await toonPerceelResultaat(percelen[0].perceelUri, { fitMap: false, gen: myGen });
+      await toonPercelenResultaat(percelen, { fitMap: false, gen: myGen });
       if (myGen !== requestGen) return;
-      if (percelen.length > 1) {
-        document.getElementById('perceel-status').textContent =
-          `Let op: dit pand raakt ${percelen.length} percelen, hierboven wordt alleen het eerste getoond.`;
-      }
     }
   } catch (err) {
     if (myGen !== requestGen) return;
@@ -1318,8 +1383,7 @@ async function verwerkAdres(doc, context) {
     const bbox = `${x - marge},${y - marge},${x + marge},${y + marge},EPSG:28992`;
     const wfsUrl = `https://service.pdok.nl/lv/bag/wfs/v2_0?service=WFS&version=2.0.0&request=GetFeature` +
       `&typeName=bag:pand&outputFormat=application/json&srsName=EPSG:28992&bbox=${bbox}`;
-    const resp = await fetchMetTimeout(wfsUrl);
-    const data = await resp.json();
+    const data = await fetchJson(wfsUrl);
     if (myGen !== requestGen) return;
 
     if (!data.features || !data.features.length) {
@@ -1327,22 +1391,26 @@ async function verwerkAdres(doc, context) {
       return;
     }
 
-    const punt = turf.point([x, y]);
-    let pand = data.features.find(f => {
-      try {
-        return turf.booleanPointInPolygon(punt, turf.feature(f.geometry));
-      } catch (e) { return false; }
-    }) || data.features[0];
+    const selectie = selectBuilding(data.features, [x, y], 30);
+    if (!selectie) {
+      statusEl.textContent = 'Geen betrouwbaar BAG-pand bij dit adrespunt gevonden.';
+      return;
+    }
+    const pand = selectie.feature;
+    if (selectie.confidence === 'NEAREST') {
+      statusEl.textContent = `Dichtstbijzijnde BAG-pand gekozen (${selectie.distance.toFixed(1)} m van het adrespunt).`;
+    }
 
     const footprint = berekenOppervlakte(pand.geometry);
     toonPand(pand, footprint, doc, x, y);
     statusEl.textContent = '';
 
-    const monument = await checkRijksmonument(pand);
+    const monumentMatch = await checkRijksmonument(pand);
     if (myGen !== requestGen) return;
-    toonMonumentBadge(monument);
+    toonMonumentBadge(monumentMatch);
 
-    const rmnr = context.rmnr || extractRmnrUitMonument(monument);
+    const rmnr = context.rmnr || (monumentMatch && monumentMatch.confidence === 'IN_PAND'
+      ? extractRmnrUitMonument(monumentMatch.feature) : null);
     verwerkPerceelVoorAdres(doc, rmnr, context.brkRelaties, myGen);
   } catch (err) {
     if (myGen !== requestGen) return;
@@ -1375,9 +1443,10 @@ function rdRingNaarLatLng(ring) {
   });
 }
 
-function toonMonumentBadge(monument) {
+function toonMonumentBadge(match) {
   const badge = document.getElementById('monument-badge');
-  if (!monument) { badge.classList.remove('zichtbaar'); return; }
+  if (!match) { badge.classList.remove('zichtbaar'); return; }
+  const monument = match.feature;
 
   const props = monument.properties;
   const jaar = props.legalfoundationdate ? props.legalfoundationdate.slice(0, 4) : '';
@@ -1387,8 +1456,9 @@ function toonMonumentBadge(monument) {
 
   let infoTekst = jaar ? `Beschermd sinds ${jaar}` : 'Beschermd rijksmonument';
   if (rmnr) infoTekst += ` · nr. ${rmnr}`;
+  if (match.confidence === 'NABIJ') infoTekst += ` · ruimtelijke indicatie (${match.distance.toFixed(1)} m buiten pand)`;
   document.getElementById('monument-info').textContent = infoTekst;
-  document.getElementById('monument-link').href = citation || 'https://monumentenregister.cultureelerfgoed.nl/';
+  document.getElementById('monument-link').href = safeHttpUrl(citation, ['monumentenregister.cultureelerfgoed.nl']) || 'https://monumentenregister.cultureelerfgoed.nl/';
   badge.classList.add('zichtbaar');
 }
 
@@ -1447,8 +1517,11 @@ function toonPand(pand, footprint, adresDoc, x, y) {
 }
 
 document.getElementById('kad-picker-sluiten').onclick = () => {
-  document.getElementById('kad-picker').classList.remove('zichtbaar');
-};
+    const overlay = document.getElementById('kad-picker');
+    overlay.classList.remove('zichtbaar');
+    overlay.setAttribute('aria-hidden', 'true');
+    input.focus();
+  };
 </script>
 </body>
 </html>
