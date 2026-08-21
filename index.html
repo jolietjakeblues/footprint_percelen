@@ -630,6 +630,16 @@ async function zoekAdres(q) {
   }
 }
 
+// Zoekt het best passende PDOK-adres voor een vrije zoekterm en geeft het eerste
+// resultaat terug, of null als er niets gevonden is. Geen state-mutaties, zodat
+// dit vanuit meerdere plekken veilig herbruikt kan worden (bv. met/zonder plaats).
+async function zoekEersteAdres(zoekterm) {
+  if (!zoekterm) return null;
+  const url = `https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(zoekterm)}&fq=type:adres&rows=1`;
+  const data = await fetchJson(url);
+  return data.response.docs[0] || null;
+}
+
 async function bestaatRijksmonument(nummer) {
   const q = PREFIXES_RCE + `SELECT ?mon WHERE { ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${sparqlString(nummer)}" . } LIMIT 1`;
   const rows = await sparqlSelect(RCE_SPARQL, q);
@@ -638,12 +648,19 @@ async function bestaatRijksmonument(nummer) {
 
 async function haalRceBagRelaties(nummer) {
   const q = PREFIXES_RCE + `
-SELECT DISTINCT ?straat ?huisnr WHERE {
+SELECT DISTINCT ?straat ?huisnr ?postcode ?woonplaats WHERE {
   ?mon a ceo:Rijksmonument ; ceo:rijksmonumentnummer "${sparqlString(nummer)}" ; ceo:heeftBasisregistratieRelatie/ceo:heeftBAGRelatie ?bag .
   ?bag ceo:openbareRuimte ?straat ; ceo:huisnummer ?huisnr .
+  OPTIONAL { ?bag ceo:postcode ?postcode }
+  OPTIONAL { ?bag ceo:woonplaatsnaam ?woonplaats }
 }`;
   const rows = await sparqlSelect(RCE_SPARQL, q);
-  return rows.map(r => ({ straat: lit(r, 'straat'), huisnummer: lit(r, 'huisnr') }));
+  return rows.map(r => ({
+    straat: lit(r, 'straat'),
+    huisnummer: lit(r, 'huisnr'),
+    postcode: lit(r, 'postcode'),
+    woonplaats: lit(r, 'woonplaats'),
+  }));
 }
 
 async function haalRceBrkRelaties(nummer) {
@@ -720,12 +737,20 @@ async function zoekRijksmonumentNummer(nummer) {
     }
 
     const eerste = bagRelaties[0];
-    const zoekterm = `${eerste.straat} ${eerste.huisnummer}`.trim();
-    const adresUrl = `https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(zoekterm)}&fq=type:adres&rows=1`;
-    const adresData = await fetchJson(adresUrl);
-    const adresDoc = adresData.response.docs[0];
+    // Straat + huisnummer alleen is niet uniek (dezelfde straatnaam-en-huisnummer-
+    // combinatie kan in meerdere woonplaatsen voorkomen, bv. "Munnikenhof 14" in
+    // zowel Terheijden als Sleeuwijk) — neem postcode en/of woonplaats mee als RCE
+    // die heeft, zodat PDOK niet het verkeerde adres in een andere plaats teruggeeft.
+    const kernterm = `${eerste.straat} ${eerste.huisnummer}`.trim();
+    const zoektermMetPlaats = [kernterm, eerste.postcode, !eerste.postcode ? eerste.woonplaats : null]
+      .filter(Boolean).join(' ').trim();
+    let adresDoc = await zoekEersteAdres(zoektermMetPlaats);
+    if (!adresDoc && zoektermMetPlaats !== kernterm) {
+      // Val terug op de kale term als de plaats-verrijkte zoekopdracht niets oplevert.
+      adresDoc = await zoekEersteAdres(kernterm);
+    }
     if (!adresDoc) {
-      statusEl.textContent = `Rijksmonument ${nummer} gevonden (${zoekterm}), maar adres kon niet worden herleid naar coördinaten.`;
+      statusEl.textContent = `Rijksmonument ${nummer} gevonden (${zoektermMetPlaats || kernterm}), maar adres kon niet worden herleid naar coördinaten.`;
       return;
     }
     if (myGen !== requestGen) return;
