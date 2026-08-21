@@ -461,7 +461,7 @@ let requestGen = 0;
 let kadPickerOnKies = null;
 
 const KKG_SPARQL = 'https://api.labs.kadaster.nl/datasets/kadaster/kkg/services/kkg/sparql';
-const RCE_SPARQL = 'https://api.linkeddata.cultureelerfgoed.nl/datasets/rce/cho/services/cho/sparql';
+const RCE_SPARQL = 'https://api.linkeddata.cultureelerfgoed.nl/datasets/rce/cho/sparql';
 const PREFIXES_KKG = `PREFIX imxgeo: <http://modellen.geostandaarden.nl/def/imx-geo#>
 PREFIX ext: <https://modellen.kkg.kadaster.nl/def/imxgeo-ext#>
 PREFIX geo: <http://www.opengis.net/ont/geosparql#>
@@ -1348,12 +1348,13 @@ async function verwerkPerceelVoorAdres(doc, rmnr, brkRelatiesHint, myGen) {
         document.getElementById('v-oorspronkelijke-functie').textContent = namen.length ? namen.join(', ') : '–';
       }).catch(() => {});
 
-      if (!document.getElementById('monument-badge').classList.contains('zichtbaar')) {
-        haalRceInschrijvingsdatum(rmnr).then(datum => {
-          if (myGen !== requestGen) return;
-          toonMonumentBadgeVoorRmnr(rmnr, datum);
-        }).catch(() => {});
-      }
+      // Altijd aanroepen, ook als de badge al zichtbaar is: een eerdere ruimtelijke
+      // ("NABIJ") match kan een ander, minder zeker monument tonen dan het bevestigde
+      // rmnr dat we hier al kennen — dat laatste weegt zwaarder en moet die overschrijven.
+      haalRceInschrijvingsdatum(rmnr).then(datum => {
+        if (myGen !== requestGen) return;
+        toonMonumentBadgeVoorRmnr(rmnr, datum);
+      }).catch(() => {});
 
       const brkRelaties = brkRelatiesHint || await haalRceBrkRelaties(rmnr);
       if (myGen !== requestGen) return;
