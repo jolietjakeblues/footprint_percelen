@@ -193,6 +193,25 @@
 
   .leaflet-popup-content { font-family: var(--sans); font-size: 13px; }
 
+  .percelen-toggle {
+    background: var(--panel);
+    border: 1.5px solid var(--ink);
+    border-radius: 3px;
+    padding: 6px 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    line-height: 1.3;
+  }
+  .percelen-toggle:hover { background: var(--rust-dim); }
+  .percelen-toggle.actief {
+    background: var(--rust);
+    border-color: var(--rust);
+    color: #fff;
+  }
+
   .sectie-kop {
     margin-top: 22px;
     padding-top: 4px;
@@ -458,6 +477,36 @@ L.tileLayer('https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/standaard/EP
   maxZoom: 19,
   attribution: 'Kaartgegevens: <a href="https://www.kadaster.nl">Kadaster</a> (PDOK)'
 }).addTo(map);
+
+const percelenKaartLayer = L.tileLayer.wms('https://service.pdok.nl/kadaster/kadastralekaart/wms/v5_0', {
+  layers: 'Kadastralekaart',
+  styles: 'standaard',
+  format: 'image/png',
+  transparent: true,
+  version: '1.3.0',
+  maxZoom: 19,
+  attribution: 'Kadastrale kaart: <a href="https://www.kadaster.nl">Kadaster</a> (PDOK)'
+});
+
+const PercelenToggle = L.Control.extend({
+  options: { position: 'topright' },
+  onAdd: function () {
+    const btn = L.DomUtil.create('button', 'percelen-toggle');
+    btn.type = 'button';
+    btn.textContent = 'Percelen';
+    btn.title = 'Kadastrale perceelgrenzen tonen/verbergen';
+    btn.setAttribute('aria-pressed', 'false');
+    L.DomEvent.disableClickPropagation(btn);
+    L.DomEvent.on(btn, 'click', () => {
+      const actief = map.hasLayer(percelenKaartLayer);
+      if (actief) { map.removeLayer(percelenKaartLayer); } else { map.addLayer(percelenKaartLayer); }
+      btn.classList.toggle('actief', !actief);
+      btn.setAttribute('aria-pressed', String(!actief));
+    });
+    return btn;
+  }
+});
+map.addControl(new PercelenToggle());
 
 let pandLayer = null;
 let marker = null;
