@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://api.pdok.nl https://service.pdok.nl https://api.labs.kadaster.nl https://api.linkeddata.cultureelerfgoed.nl; img-src 'self' data: https://*.tile.openstreetmap.org https://cdnjs.cloudflare.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://api.pdok.nl https://service.pdok.nl https://api.labs.kadaster.nl https://api.linkeddata.cultureelerfgoed.nl; img-src 'self' data: https://service.pdok.nl https://cdnjs.cloudflare.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <title>Pandoppervlakte &amp; percelen</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -454,9 +454,9 @@ proj4.defs("EPSG:28992",
   "+towgs84=565.4171,50.3319,465.5524,-0.398957,0.343988,-1.8774,4.0725 +no_defs");
 
 const map = L.map('map', { zoomControl: true }).setView([52.09, 5.12], 7);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 20,
-  attribution: '&copy; OpenStreetMap'
+L.tileLayer('https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/standaard/EPSG:3857/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: 'Kaartgegevens: <a href="https://www.kadaster.nl">Kadaster</a> (PDOK)'
 }).addTo(map);
 
 let pandLayer = null;
