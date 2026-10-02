@@ -104,5 +104,26 @@
       return url.href;
     } catch (_) { return null; }
   }
-  return { parseWKT, pointInGeometry, distanceToGeometry, geometryBBox, selectBuilding, selectMonument, safeHttpUrl };
+  // Vertaalt technische fetch-/bronfouten naar een leesbare Nederlandse tekst, zodat
+  // de gebruiker geen "Failed to fetch" of "signal timed out" te zien krijgt.
+  function foutTekst(err) {
+    const naam = err && err.name;
+    const bericht = String((err && err.message) || '');
+    if (naam === 'TimeoutError' || naam === 'AbortError') {
+      return 'de bron reageerde niet op tijd. Probeer het over een moment opnieuw.';
+    }
+    if (naam === 'TypeError' && /failed to fetch|networkerror|load failed|network request failed/i.test(bericht)) {
+      return 'geen verbinding met de bron. Controleer je internetverbinding en probeer het opnieuw.';
+    }
+    const status = bericht.match(/\((\d{3})\)/);
+    if (status) {
+      const code = Number(status[1]);
+      if (code === 429) return 'de bron krijgt op dit moment te veel verzoeken. Probeer het over een minuut opnieuw.';
+      if (code >= 500) return `de bron is tijdelijk niet beschikbaar (${code}). Probeer het later opnieuw.`;
+      return `de bron weigerde het verzoek (${code}).`;
+    }
+    return bericht || 'onbekende fout.';
+  }
+
+  return { parseWKT, pointInGeometry, distanceToGeometry, geometryBBox, selectBuilding, selectMonument, safeHttpUrl, foutTekst };
 });

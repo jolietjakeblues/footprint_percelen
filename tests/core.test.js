@@ -38,6 +38,18 @@ test('selectMonument onderscheidt binnen-pand en nabijheidsindicatie', () => {
   assert.equal(near.confidence, 'NABIJ');
 });
 
+test('foutTekst maakt van technische fetch-fouten een leesbare Nederlandse melding', () => {
+  const timeout = core.foutTekst(Object.assign(new Error('signal timed out'), { name: 'TimeoutError' }));
+  assert.match(timeout, /niet op tijd/);
+  assert.doesNotMatch(timeout, /signal|timed out/i);
+  assert.match(core.foutTekst(new TypeError('Failed to fetch')), /geen verbinding/);
+  assert.match(core.foutTekst(new Error('SPARQL-fout (504)')), /tijdelijk niet beschikbaar \(504\)/);
+  assert.match(core.foutTekst(new Error('Bronfout (429)')), /te veel verzoeken/);
+  assert.match(core.foutTekst(new Error('Bronfout (404)')), /weigerde het verzoek \(404\)/);
+  assert.equal(core.foutTekst(new Error('Ongeldige Kadaster-URI')), 'Ongeldige Kadaster-URI');
+  assert.equal(core.foutTekst(null), 'onbekende fout.');
+});
+
 test('safeHttpUrl blokkeert scripts, http en onverwachte hosts', () => {
   assert.equal(core.safeHttpUrl('javascript:alert(1)'), null);
   assert.equal(core.safeHttpUrl('http://monumentenregister.cultureelerfgoed.nl/monumenten/1'), null);
